@@ -1,7 +1,7 @@
 import 'package:codable/core.dart';
 import 'package:codable/extended.dart';
 
-class Box<T> implements SelfEncodable1<T> {
+class Box<T> implements SelfEncodable {
   Box(this.label, this.data);
 
   final String label;
@@ -27,18 +27,29 @@ class Box<T> implements SelfEncodable1<T> {
   }
 }
 
-class BoxCodable<T> extends SelfCodable1<Box<T>, T> {
+extension BoxEncodableExtension<T> on Box<T> {
+  SelfEncodable use([Encodable<T>? encodableT]) {
+    return SelfEncodable.fromHandler((e) => encode(e, encodableT));
+  }
+}
+
+class BoxCodable<T> extends Codable1<Box<T>, T> {
   const BoxCodable();
 
   @override
-  Box<T> decode(Decoder decoder, [Decodable<T>? decodableA]) {
-    // For simplicity, we don't check the decoder.whatsNext() here.
+  void encode(Box<T> value, Encoder encoder, [Encodable<T>? encodableA]) {
+    value.encode(encoder, encodableA);
+  }
+
+  @override
+  Box<T> decode(Decoder decoder, [Decodable<T>? decodableT]) {
+    // For simplicity, we don't check the decoder.whatsNext() here. Don't do this for real implementations.
     final mapped = decoder.decodeMapped();
     return Box(
       mapped.decodeString('label'),
-      decodableA == null // If no decodable is provided, we assume the data is a primitive type.
+      decodableT == null // If no decodable is provided, we assume the data is a primitive type.
           ? mapped.decodeDynamic('data') as T
-          : mapped.decodeObject('data', using: decodableA),
+          : mapped.decodeObject('data', using: decodableT),
     );
   }
 }

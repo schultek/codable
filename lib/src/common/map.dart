@@ -34,7 +34,7 @@ extension AsMapEncodable<T extends SelfEncodable> on Map<dynamic, T> {
 /// A [Codable] that can encode and decode a map of [K] and [V].
 ///
 /// Prefer using [AsMapCodable.map] instead of the constructor.
-class MapCodable<K, V> implements ComposedCodable2<Map<K, V>, K, V> {
+class MapCodable<K, V> implements Codable<Map<K, V>>, ComposedDecodable2<Map<K, V>, K, V> {
   const MapCodable(this.keyCodable, this.codable);
 
   final Codable<K>? keyCodable;

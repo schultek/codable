@@ -1,9 +1,9 @@
 import 'dart:async';
 
-// ignore: implementation_imports
+import 'package:codable/common.dart';
 import 'package:codable/core.dart';
 import 'package:codable/extended.dart';
-import 'package:codable/standard.dart';
+// ignore: implementation_imports
 import 'package:type_plus/src/types_registry.dart' show TypeRegistry;
 import 'package:type_plus/type_plus.dart';
 

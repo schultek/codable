@@ -23,7 +23,7 @@ final personBenchJsonBytes = utf8.encode(personBenchJson);
 void main() {
   Person p = PersonRaw.fromMapRaw(personBenchData);
 
-  group('benchmark', () {
+  group('benchmark', tags: 'benchmark', () {
     compare(
       'MAP DECODING',
       self: () => p = Person.codable.fromMap(personBenchData),

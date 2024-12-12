@@ -1,4 +1,3 @@
-import 'package:codable/extended.dart';
 import 'package:codable/json.dart';
 import 'package:test/test.dart';
 

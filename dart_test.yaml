@@ -1,0 +1,11 @@
+# Run benchmarks using 'dart test -P benchmark'
+
+tags:
+  benchmark:
+    skip: true
+    presets: { benchmark: { skip: false } }
+
+presets:
+  benchmark:
+    include_tags: benchmark
+    concurrency: 1
