@@ -1,10 +1,10 @@
 import 'package:codable/core.dart';
 import 'package:codable/extended.dart';
 
-class Animal implements SelfEncodable {
-  Animal({required this.type});
+class Pet implements SelfEncodable {
+  Pet({required this.type});
 
-  static const Codable<Animal> codable = AnimalCodable();
+  static const Codable<Pet> codable = PetCodable();
 
   final String type;
 
@@ -16,7 +16,7 @@ class Animal implements SelfEncodable {
   }
 }
 
-class Cat extends Animal {
+class Cat extends Pet {
   Cat({required this.name, this.lives = 7}) : super(type: 'cat');
 
   static const Codable<Cat> codable = CatCodable();
@@ -34,7 +34,7 @@ class Cat extends Animal {
   }
 }
 
-class Dog extends Animal {
+class Dog extends Pet {
   Dog({required this.name, required this.breed}) : super(type: 'dog');
 
   static const Codable<Dog> codable = DogCodable();
@@ -52,23 +52,23 @@ class Dog extends Animal {
   }
 }
 
-// Animal
+// Pet
 
-class AnimalCodable extends SelfCodable<Animal> with SuperDecodable<Animal> {
-  const AnimalCodable();
+class PetCodable extends SelfCodable<Pet> with SuperDecodable<Pet> {
+  const PetCodable();
 
   @override
   String get discriminatorKey => 'type';
 
   @override
-  List<Discriminator<Animal>> get discriminators => [
+  List<Discriminator<Pet>> get discriminators => [
         Discriminator<Cat>('cat', CatCodable.new),
         Discriminator<Dog>('dog', DogCodable.new),
       ];
 
   @override
-  Animal decodeFallback(Decoder decoder) {
-    return Animal(type: decoder.decodeMapped().decodeString('type'));
+  Pet decodeFallback(Decoder decoder) {
+    return Pet(type: decoder.decodeMapped().decodeString('type'));
   }
 }
 

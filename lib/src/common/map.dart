@@ -34,7 +34,7 @@ extension AsMapEncodable<T extends SelfEncodable> on Map<dynamic, T> {
 /// A [Codable] that can encode and decode a map of [K] and [V].
 ///
 /// Prefer using [AsMapCodable.map] instead of the constructor.
-class MapCodable<K, V> implements ComposedCodable2<Map<K, V>, K, V> {
+class MapCodable<K, V> implements Codable<Map<K, V>>, ComposedDecodable2<Map<K, V>, K, V> {
   const MapCodable(this.keyCodable, this.codable);
 
   final Codable<K>? keyCodable;
@@ -55,8 +55,8 @@ class MapCodable<K, V> implements ComposedCodable2<Map<K, V>, K, V> {
   Map<K, V> decodeKeyed(KeyedDecoder keyed) {
     final map = <K, V>{};
     for (Object? key; (key = keyed.nextKey()) != null;) {
-      if (keyCodable != null) {
-        key = StandardDecoder.decode<K>(key, keyCodable!);
+      if (keyCodable != null && key is! K) {
+        key = StandardDecoder.decode<K>(key, using: keyCodable!);
       }
       map[key as K] = keyed.decodeObject(using: codable);
     }
@@ -65,13 +65,7 @@ class MapCodable<K, V> implements ComposedCodable2<Map<K, V>, K, V> {
 
   @override
   void encode(Map<K, V> value, Encoder encoder) {
-    if (keyCodable != null) {
-      encoder.encodeMap(value, keyUsing: keyCodable, valueUsing: codable);
-    } else if (value case Map<SelfEncodable, V> v) {
-      encoder.encodeMap<SelfEncodable, V>(v, keyUsing: Encodable.self(), valueUsing: codable);
-    } else {
-      encoder.encodeMap(value, valueUsing: codable);
-    }
+    encoder.encodeMap(value, keyUsing: keyCodable, valueUsing: codable);
   }
 
   @override
@@ -90,10 +84,6 @@ class MapSelfEncodable<T extends SelfEncodable> implements SelfEncodable {
 
   @override
   void encode(Encoder encoder) {
-    if (value case Map<SelfEncodable, T> v) {
-      encoder.encodeMap<SelfEncodable, T>(v, keyUsing: Encodable.self(), valueUsing: Encodable.self());
-    } else {
-      encoder.encodeMap<dynamic, T>(value, valueUsing: Encodable.self());
-    }
+    encoder.encodeMap<dynamic, T>(value);
   }
 }

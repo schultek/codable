@@ -12,7 +12,6 @@ import 'dart:typed_data';
 
 import 'package:codable/core.dart';
 import 'package:codable/extended.dart';
-import 'package:codable/standard.dart';
 
 extension MsgPackDecodable<T> on Decodable<T> {
   T fromMsgPack(List<int> bytes) {
@@ -22,13 +21,13 @@ extension MsgPackDecodable<T> on Decodable<T> {
 
 extension MsgPackEncodable<T> on Encodable<T> {
   List<int> toMsgPack(T value) {
-    return MsgPackEncoder.encode<T>(value, this);
+    return MsgPackEncoder.encode<T>(value, using: this);
   }
 }
 
 extension MsgPackSelfEncodableSelf<T extends SelfEncodable> on T {
   List<int> toMsgPack() {
-    return MsgPackEncoder.encode<T>(this, Encodable.self());
+    return MsgPackEncoder.encode<T>(this);
   }
 }
 
@@ -40,137 +39,123 @@ class MsgPackDecoder implements Decoder {
     return decodable.decode(MsgPackDecoder._(Unpacker.fromList(value)));
   }
 
-  @pragma('vm:prefer-inline')
   @override
-  T decodeObject<T>({required Decodable<T> using}) {
-    return using.decode(this);
+  DecodingType whatsNext() {
+    final b = _unpacker.whatIsNext();
+    return switch (b) {
+      0xc0 => DecodingType.nil,
+      <= 0x7f || >= 0xe0 || (>= 0xcc && <= 0xd3) => DecodingType.int,
+      0xc2 || 0xc3 => DecodingType.bool,
+      0xca || 0xcb => DecodingType.double,
+      0xc0 || 0xd9 || 0xda || 0xdb => DecodingType.string,
+      _ when (b & 0xE0) == 0xA0 => DecodingType.string,
+      0xc4 || 0xc5 || 0xc6 => DecodingType<Uint8List>.custom(),
+      (>= 0x90 && <= 0x9F) || 0xdc || 0xdd => DecodingType.iterated,
+      (>= 0x80 && <= 0x8F) || 0xde || 0xdf => DecodingType.keyed,
+      (>= 0xd4 && <= 0xd8) || (>= 0xc7 && <= 0xc9) => switch (_unpacker._getExtType()) {
+          -1 => DecodingType<DateTime>.custom(),
+          _ => DecodingType.unknown,
+        },
+      _ => DecodingType.unknown,
+    };
   }
 
-  @pragma('vm:prefer-inline')
-  @override
-  T? decodeObjectOrNull<T>({required Decodable<T> using}) {
-    if (_unpacker.skipNull()) return null;
-    return using.decode(this);
-  }
-
-  @pragma('vm:prefer-inline')
   @override
   bool decodeBool() {
     return _unpacker.unpackBool()!;
   }
 
-  @pragma('vm:prefer-inline')
   @override
   bool? decodeBoolOrNull() {
     return _unpacker.unpackBool();
   }
 
-  @pragma('vm:prefer-inline')
-  @override
-  double decodeDouble() {
-    return (_unpacker._unpack() as num).toDouble();
-  }
-
-  @pragma('vm:prefer-inline')
-  @override
-  double? decodeDoubleOrNull() {
-    return (_unpacker._unpack() as num?)?.toDouble();
-  }
-
-  @pragma('vm:prefer-inline')
   @override
   int decodeInt() {
     return _unpacker.unpackInt()!;
   }
 
-  @pragma('vm:prefer-inline')
   @override
   int? decodeIntOrNull() {
     return _unpacker.unpackInt();
   }
 
-  @pragma('vm:prefer-inline')
   @override
-  List<I> decodeList<I>({Decodable<I>? using}) {
-    if (using == null) return _unpacker.unpackList().cast();
-    var n = _unpacker.unpackListLength();
-    return [
-      for (var i = 0; i < n; i++) using.decode(this),
-    ];
+  double decodeDouble() {
+    return (_unpacker._unpack() as num).toDouble();
   }
 
-  @pragma('vm:prefer-inline')
   @override
-  List<I>? decodeListOrNull<I>({Decodable<I>? using}) {
-    if (_unpacker.skipNull()) return null;
-    return decodeList(using: using);
+  double? decodeDoubleOrNull() {
+    return (_unpacker._unpack() as num?)?.toDouble();
   }
 
-  @pragma('vm:prefer-inline')
-  @override
-  Map<K, V> decodeMap<K, V>({Decodable<K>? keyUsing, Decodable<V>? valueUsing}) {
-    final length = _unpacker.unpackMapLength();
-    return switch ((keyUsing, valueUsing)) {
-      (null, null) => {
-          for (int i = 0; i < length; i++) _unpacker._unpack() as K: _unpacker._unpack() as V,
-        },
-      (final dk?, null) => {
-          for (int i = 0; i < length; i++) StandardDecoder.decode(_unpacker._unpack(), dk): _unpacker._unpack() as V,
-        },
-      (null, final dv?) => {
-          for (int i = 0; i < length; i++) _unpacker._unpack() as K: dv.decode(this),
-        },
-      (final dk?, final dv?) => {
-          for (int i = 0; i < length; i++) StandardDecoder.decode(_unpacker._unpack(), dk): dv.decode(this),
-        },
-    };
-  }
-
-  @pragma('vm:prefer-inline')
-  @override
-  Map<K, V>? decodeMapOrNull<K, V>({Decodable<K>? keyUsing, Decodable<V>? valueUsing}) {
-    if (_unpacker.skipNull()) return null;
-    return decodeMap(keyUsing: keyUsing, valueUsing: valueUsing);
-  }
-
-  @pragma('vm:prefer-inline')
   @override
   num decodeNum() {
     return _unpacker._unpack() as num;
   }
 
-  @pragma('vm:prefer-inline')
   @override
   num? decodeNumOrNull() {
     return _unpacker._unpack() as num?;
   }
 
-  @pragma('vm:prefer-inline')
   @override
   String decodeString() {
     return _unpacker.unpackString()!;
   }
 
-  @pragma('vm:prefer-inline')
   @override
   String? decodeStringOrNull() {
     return _unpacker.unpackString();
   }
 
-  @pragma('vm:prefer-inline')
   @override
   bool decodeIsNull() {
     return _unpacker.skipNull();
   }
 
   @override
-  MsgPackDecoder clone() {
-    return MsgPackDecoder._(Unpacker.copy(_unpacker._list, _unpacker._d, _unpacker._offset));
+  T decodeObject<T>({Decodable<T>? using}) {
+    if (using != null) {
+      return using.decode(this);
+    } else {
+      return _unpacker._unpack() as T;
+    }
   }
 
   @override
-  dynamic decodeDynamic() {
-    return _unpacker._unpack();
+  T? decodeObjectOrNull<T>({Decodable<T>? using}) {
+    if (_unpacker.skipNull()) return null;
+    return decodeObject(using: using);
+  }
+
+  @override
+  List<I> decodeList<I>({Decodable<I>? using}) {
+    var n = _unpacker.unpackListLength();
+    return [
+      for (var i = 0; i < n; i++) decodeObject(using: using),
+    ];
+  }
+
+  @override
+  List<I>? decodeListOrNull<I>({Decodable<I>? using}) {
+    if (_unpacker.skipNull()) return null;
+    return decodeList(using: using);
+  }
+
+  @override
+  Map<K, V> decodeMap<K, V>({Decodable<K>? keyUsing, Decodable<V>? valueUsing}) {
+    final length = _unpacker.unpackMapLength();
+    return {
+      for (int i = 0; i < length; i++) decodeObject<K>(using: keyUsing): decodeObject<V>(using: valueUsing),
+    };
+  }
+
+  @override
+  Map<K, V>? decodeMapOrNull<K, V>({Decodable<K>? keyUsing, Decodable<V>? valueUsing}) {
+    if (_unpacker.skipNull()) return null;
+    return decodeMap(keyUsing: keyUsing, valueUsing: valueUsing);
   }
 
   @override
@@ -189,27 +174,13 @@ class MsgPackDecoder implements Decoder {
   }
 
   @override
-  DecodingType whatsNext() {
-    final b = _unpacker.whatIsNext();
-    if (b == 0xc0) {
-      return DecodingType.nil;
-    } else if (b <= 0x7f || b >= 0xe0 || (b >= 0xcc && b <= 0xd3)) {
-      return DecodingType.int;
-    } else if (b == 0xc2 || b == 0xc3) {
-      return DecodingType.bool;
-    } else if (b == 0xca || b == 0xcb) {
-      return DecodingType.double;
-    } else if ((b & 0xE0) == 0xA0 || b == 0xc0 || b == 0xd9 || b == 0xda || b == 0xdb) {
-      return DecodingType.string;
-    } else if (b == 0xc4 || b == 0xc5 || b == 0xc6) {
-      return DecodingType<Uint8List>.custom();
-    } else if ((b & 0xF0) == 0x90 || b == 0xdc || b == 0xdd) {
-      return DecodingType.iterated;
-    } else if ((b & 0xF0) == 0x80 || b == 0xde || b == 0xdf) {
-      return DecodingType.keyed;
-    } else {
-      return DecodingType.unknown;
-    }
+  bool isHumanReadable() {
+    return false;
+  }
+
+  @override
+  MsgPackDecoder clone() {
+    return MsgPackDecoder._(Unpacker.copy(_unpacker._list, _unpacker._d, _unpacker._offset));
   }
 
   @override
@@ -221,21 +192,6 @@ class MsgPackDecoder implements Decoder {
       offset: _unpacker._offset,
     );
   }
-
-  @override
-  T decodeCustom<T>() {
-    throw CodableException.unsupportedMethod('MsgPackDecoder', 'decodeCustom<$T>');
-  }
-
-  @override
-  T? decodeCustomOrNull<T>() {
-    throw CodableException.unsupportedMethod('MsgPackDecoder', 'decodeCustomOrNull<$T>');
-  }
-
-  @override
-  bool isHumanReadable() {
-    return false;
-  }
 }
 
 class MsgPackCollectionDecoder extends MsgPackDecoder implements KeyedDecoder, IteratedDecoder {
@@ -244,14 +200,12 @@ class MsgPackCollectionDecoder extends MsgPackDecoder implements KeyedDecoder, I
   final int length;
   int index = -1;
 
-  @pragma('vm:prefer-inline')
   @override
   bool nextItem() {
     index++;
     return index < length;
   }
 
-  @pragma('vm:prefer-inline')
   @override
   Object? nextKey() {
     index++;
@@ -262,19 +216,16 @@ class MsgPackCollectionDecoder extends MsgPackDecoder implements KeyedDecoder, I
     }
   }
 
-  @pragma('vm:prefer-inline')
   @override
   void skipCurrentItem() {
     _unpacker._unpack();
   }
 
-  @pragma('vm:prefer-inline')
   @override
   void skipCurrentValue() {
     _unpacker._unpack();
   }
 
-  @pragma('vm:prefer-inline')
   @override
   void skipRemainingKeys() {
     for (; nextKey() != null;) {
@@ -282,7 +233,6 @@ class MsgPackCollectionDecoder extends MsgPackDecoder implements KeyedDecoder, I
     }
   }
 
-  @pragma('vm:prefer-inline')
   @override
   void skipRemainingItems() {
     for (; nextItem();) {
@@ -303,144 +253,15 @@ class MsgPackEncoder implements Encoder {
 
   void tick() {}
 
-  static List<int> encode<T>(T value, Encodable<T> encodable) {
+  static List<int> encode<T>(T value, {Encodable<T>? using}) {
     var encoder = MsgPackEncoder._(Packer());
-    encodable.encode(value, encoder);
+    encoder.encodeObject(value, using: using);
     return encoder._packer.takeBytes();
   }
 
-  @pragma('vm:prefer-inline')
   @override
   void encodeBool(bool value) {
-    tick();
-    _packer.packBool(value);
-  }
-
-  @pragma('vm:prefer-inline')
-  @override
-  IteratedEncoder encodeIterated() {
-    tick();
-    return MsgPackIteratedEncoder(_packer);
-  }
-
-  @pragma('vm:prefer-inline')
-  @override
-  void encodeDouble(double value) {
-    tick();
-    if (value.truncate() == value) {
-      _packer.packInt(value.truncate());
-    } else {
-      _packer.packDouble(value);
-    }
-  }
-
-  @pragma('vm:prefer-inline')
-  @override
-  void encodeInt(int value) {
-    tick();
-    _packer.packInt(value);
-  }
-
-  @pragma('vm:prefer-inline')
-  @override
-  void encodeIterable<E>(Iterable<E> value, {Encodable<E>? using}) {
-    tick();
-    _packer.packListLength(value.length);
-    if (using != null) {
-      for (final e in value) {
-        using.encode(e, this);
-      }
-    } else {
-      for (final e in value) {
-        _packer._pack(e);
-      }
-    }
-  }
-
-  @pragma('vm:prefer-inline')
-  @override
-  KeyedEncoder encodeKeyed() {
-    tick();
-    return MsgPackKeyedEncoder._(_packer);
-  }
-
-  @pragma('vm:prefer-inline')
-  @override
-  void encodeMap<K, V>(Map<K, V> value, {Encodable<K>? keyUsing, Encodable<V>? valueUsing}) {
-    tick();
-    _packer.packMapLength(value.length);
-    if (keyUsing == null && valueUsing == null) {
-      for (final key in value.keys) {
-        final v = value[key] as V;
-        _packer.packString(key as String);
-        _packer._pack(v);
-      }
-    } else if (keyUsing == null && valueUsing != null) {
-      for (final key in value.keys) {
-        final v = value[key] as V;
-        _packer.packString(key as String);
-        valueUsing.encode(v, this);
-      }
-    } else if (keyUsing != null && valueUsing == null) {
-      for (final key in value.keys) {
-        final v = value[key] as V;
-        keyUsing.encode(key, this);
-        _packer._pack(v);
-      }
-    } else {
-      for (final key in value.keys) {
-        final v = value[key] as V;
-        keyUsing!.encode(key, this);
-        valueUsing!.encode(v, this);
-      }
-    }
-  }
-
-  @pragma('vm:prefer-inline')
-  @override
-  void encodeNull() {
-    tick();
-    _packer.packNull();
-  }
-
-  @pragma('vm:prefer-inline')
-  @override
-  void encodeNum(num value) {
-    tick();
-    if (value is int) {
-      _packer.packInt(value);
-    } else {
-      _packer.packDouble(value.toDouble());
-    }
-  }
-
-  @pragma('vm:prefer-inline')
-  @override
-  void encodeObject<T>(T value, {required Encodable<T> using}) {
-    using.encode(value, this);
-  }
-
-  @pragma('vm:prefer-inline')
-  @override
-  void encodeString(String value) {
-    tick();
-    _packer.packString(value);
-  }
-
-  @override
-  bool canEncodeCustom<T>() {
-    return false;
-  }
-
-  @override
-  void encodeCustom<T>(T value) {
-    throw CodableException.unsupportedMethod('MsgPackEncoder', 'encodeCustom<$T>');
-  }
-
-  @override
-  void encodeDynamic(value) {
-    tick();
-    _packer._pack(value);
+    encodeBoolOrNull(value);
   }
 
   @override
@@ -450,8 +271,19 @@ class MsgPackEncoder implements Encoder {
   }
 
   @override
-  void encodeCustomOrNull<T>(T? value) {
-    throw CodableException.unsupportedMethod('MsgPackEncoder', 'encodeCustomOrNull<$T>');
+  void encodeInt(int value) {
+    encodeIntOrNull(value);
+  }
+
+  @override
+  void encodeIntOrNull(int? value) {
+    tick();
+    _packer.packInt(value);
+  }
+
+  @override
+  void encodeDouble(double value) {
+    encodeDoubleOrNull(value);
   }
 
   @override
@@ -465,9 +297,71 @@ class MsgPackEncoder implements Encoder {
   }
 
   @override
-  void encodeIntOrNull(int? value) {
+  void encodeNum(num value) {
+    encodeNumOrNull(value);
+  }
+
+  @override
+  void encodeNumOrNull(num? value) {
     tick();
-    _packer.packInt(value);
+    if (value is int) {
+      _packer.packInt(value);
+    } else {
+      _packer.packDouble(value?.toDouble());
+    }
+  }
+
+  @override
+  void encodeString(String value) {
+    encodeStringOrNull(value);
+  }
+
+  @override
+  void encodeStringOrNull(String? value) {
+    tick();
+    _packer.packString(value);
+  }
+
+  @override
+  void encodeNull() {
+    tick();
+    _packer.packNull();
+  }
+
+  @override
+  bool canEncodeCustom<T>() {
+    return T == DateTime;
+  }
+
+  @override
+  void encodeObject<T>(T value, {Encodable<T>? using}) {
+    if (using != null) {
+      using.encode(value, this);
+    } else if (value is SelfEncodable) {
+      value.encode(this);
+    } else {
+      tick();
+      _packer._pack(value);
+    }
+  }
+
+  @override
+  void encodeObjectOrNull<T>(T? value, {Encodable<T>? using}) {
+    if (value == null) {
+      tick();
+      _packer.packNull();
+    } else {
+      encodeObject(value, using: using);
+    }
+  }
+
+  @override
+  void encodeIterable<E>(Iterable<E> value, {Encodable<E>? using}) {
+    tick();
+    _packer.packListLength(value.length);
+    for (final e in value) {
+      encodeObject(e, using: using);
+    }
   }
 
   @override
@@ -477,6 +371,17 @@ class MsgPackEncoder implements Encoder {
       _packer.packNull();
     } else {
       encodeIterable(value, using: using);
+    }
+  }
+
+  @override
+  void encodeMap<K, V>(Map<K, V> value, {Encodable<K>? keyUsing, Encodable<V>? valueUsing}) {
+    tick();
+    _packer.packMapLength(value.length);
+    for (final key in value.keys) {
+      final v = value[key] as V;
+      encodeObject(key, using: keyUsing);
+      encodeObject(v, using: valueUsing);
     }
   }
 
@@ -491,29 +396,15 @@ class MsgPackEncoder implements Encoder {
   }
 
   @override
-  void encodeNumOrNull(num? value) {
+  IteratedEncoder encodeIterated() {
     tick();
-    if (value is int) {
-      _packer.packInt(value);
-    } else {
-      _packer.packDouble(value?.toDouble());
-    }
+    return MsgPackIteratedEncoder(_packer);
   }
 
   @override
-  void encodeObjectOrNull<T>(T? value, {required Encodable<T> using}) {
-    if (value == null) {
-      tick();
-      _packer.packNull();
-    } else {
-      using.encode(value, this);
-    }
-  }
-
-  @override
-  void encodeStringOrNull(String? value) {
+  KeyedEncoder encodeKeyed() {
     tick();
-    _packer.packString(value);
+    return MsgPackKeyedEncoder._(_packer);
   }
 
   @override
@@ -561,117 +452,11 @@ class MsgPackKeyedEncoder implements KeyedEncoder {
     _parentPacker._putBytes(_packer.takeBytes());
   }
 
-  @pragma('vm:prefer-inline')
   @override
   void encodeBool(String key, bool value, {int? id}) {
     tick();
     _packer.packString(key);
     _packer.packBool(value);
-  }
-
-  @pragma('vm:prefer-inline')
-  @override
-  IteratedEncoder encodeIterated(String key, {int? id}) {
-    tick();
-    _packer.packString(key);
-    return MsgPackIteratedEncoder(_packer);
-  }
-
-  @pragma('vm:prefer-inline')
-  @override
-  void encodeDouble(String key, double value, {int? id}) {
-    tick();
-    _packer.packString(key);
-    if (value.truncate() == value) {
-      _packer.packInt(value.truncate());
-    } else {
-      _packer.packDouble(value);
-    }
-  }
-
-  @pragma('vm:prefer-inline')
-  @override
-  void encodeInt(String key, int value, {int? id}) {
-    tick();
-    _packer.packString(key);
-    _packer.packInt(value);
-  }
-
-  @pragma('vm:prefer-inline')
-  @override
-  void encodeIterable<E>(String key, Iterable<E> value, {int? id, Encodable<E>? using}) {
-    tick();
-    _packer.packString(key);
-    MsgPackEncoder._(_packer).encodeIterable(value, using: using);
-  }
-
-  @pragma('vm:prefer-inline')
-  @override
-  KeyedEncoder encodeKeyed(String key, {int? id}) {
-    tick();
-    _packer.packString(key);
-    return MsgPackKeyedEncoder._(_packer);
-  }
-
-  @pragma('vm:prefer-inline')
-  @override
-  void encodeMap<K, V>(String key, Map<K, V> value, {int? id, Encodable<K>? keyUsing, Encodable<V>? valueUsing}) {
-    tick();
-    _packer.packString(key);
-    MsgPackEncoder._(_packer).encodeMap(value, keyUsing: keyUsing, valueUsing: valueUsing);
-  }
-
-  @pragma('vm:prefer-inline')
-  @override
-  void encodeNull(String key, {int? id}) {
-    tick();
-    _packer.packString(key);
-    _packer.packNull();
-  }
-
-  @pragma('vm:prefer-inline')
-  @override
-  void encodeNum(String key, num value, {int? id}) {
-    tick();
-    _packer.packString(key);
-    if (value is int) {
-      _packer.packInt(value);
-    } else {
-      _packer.packDouble(value.toDouble());
-    }
-  }
-
-  @pragma('vm:prefer-inline')
-  @override
-  void encodeObject<T>(String key, T value, {int? id, required Encodable<T> using}) {
-    tick();
-    _packer.packString(key);
-    using.encode(value, MsgPackEncoder._(_packer));
-  }
-
-  @pragma('vm:prefer-inline')
-  @override
-  void encodeString(String key, String value, {int? id}) {
-    tick();
-    _packer.packString(key);
-    _packer.packString(value);
-  }
-
-  @override
-  bool canEncodeCustom<T>() {
-    return false;
-  }
-
-  @override
-  void encodeCustom<T>(String key, T value, {int? id}) {
-    throw CodableException.unsupportedMethod('MsgPackKeyedEncoder', 'encodeCustom<$T>');
-  }
-
-  @override
-  void encodeDynamic(String key, dynamic value, {int? id}) {
-    tick();
-    _packer.packString(key);
-    _packer._pack(value);
   }
 
   @override
@@ -684,17 +469,10 @@ class MsgPackKeyedEncoder implements KeyedEncoder {
   }
 
   @override
-  void encodeCustomOrNull<T>(String key, T? value, {int? id}) {
-    throw CodableException.unsupportedMethod('MsgPackKeyedEncoder', 'encodeCustomOrNull<$T>');
-  }
-
-  @override
-  void encodeDoubleOrNull(String key, double? value, {int? id}) {
-    if (value == null) {
-      encodeNull(key, id: id);
-    } else {
-      encodeDouble(key, value, id: id);
-    }
+  void encodeInt(String key, int value, {int? id}) {
+    tick();
+    _packer.packString(key);
+    _packer.packInt(value);
   }
 
   @override
@@ -707,21 +485,33 @@ class MsgPackKeyedEncoder implements KeyedEncoder {
   }
 
   @override
-  void encodeIterableOrNull<E>(String key, Iterable<E>? value, {int? id, Encodable<E>? using}) {
-    if (value == null) {
-      encodeNull(key, id: id);
+  void encodeDouble(String key, double value, {int? id}) {
+    tick();
+    _packer.packString(key);
+    if (value.truncate() == value) {
+      _packer.packInt(value.truncate());
     } else {
-      encodeIterable(key, value, id: id, using: using);
+      _packer.packDouble(value);
     }
   }
 
   @override
-  void encodeMapOrNull<K, V>(String key, Map<K, V>? value,
-      {int? id, Encodable<K>? keyUsing, Encodable<V>? valueUsing}) {
+  void encodeDoubleOrNull(String key, double? value, {int? id}) {
     if (value == null) {
       encodeNull(key, id: id);
     } else {
-      encodeMap(key, value, id: id, keyUsing: keyUsing, valueUsing: valueUsing);
+      encodeDouble(key, value, id: id);
+    }
+  }
+
+  @override
+  void encodeNum(String key, num value, {int? id}) {
+    tick();
+    _packer.packString(key);
+    if (value is int) {
+      _packer.packInt(value);
+    } else {
+      _packer.packDouble(value.toDouble());
     }
   }
 
@@ -735,12 +525,10 @@ class MsgPackKeyedEncoder implements KeyedEncoder {
   }
 
   @override
-  void encodeObjectOrNull<T>(String key, T? value, {int? id, required Encodable<T> using}) {
-    if (value == null) {
-      encodeNull(key, id: id);
-    } else {
-      encodeObject(key, value, id: id, using: using);
-    }
+  void encodeString(String key, String value, {int? id}) {
+    tick();
+    _packer.packString(key);
+    _packer.packString(value);
   }
 
   @override
@@ -750,6 +538,81 @@ class MsgPackKeyedEncoder implements KeyedEncoder {
     } else {
       encodeString(key, value, id: id);
     }
+  }
+
+  @override
+  void encodeNull(String key, {int? id}) {
+    tick();
+    _packer.packString(key);
+    _packer.packNull();
+  }
+
+  @override
+  bool canEncodeCustom<T>() {
+    return T == DateTime;
+  }
+
+  @override
+  void encodeObject<T>(String key, T value, {int? id, Encodable<T>? using}) {
+    tick();
+    _packer.packString(key);
+    MsgPackEncoder._(_packer).encodeObject(value, using: using);
+  }
+
+  @override
+  void encodeObjectOrNull<T>(String key, T? value, {int? id, Encodable<T>? using}) {
+    if (value == null) {
+      encodeNull(key, id: id);
+    } else {
+      encodeObject(key, value, id: id, using: using);
+    }
+  }
+
+  @override
+  void encodeIterable<E>(String key, Iterable<E> value, {int? id, Encodable<E>? using}) {
+    tick();
+    _packer.packString(key);
+    MsgPackEncoder._(_packer).encodeIterable(value, using: using);
+  }
+
+  @override
+  void encodeIterableOrNull<E>(String key, Iterable<E>? value, {int? id, Encodable<E>? using}) {
+    if (value == null) {
+      encodeNull(key, id: id);
+    } else {
+      encodeIterable(key, value, id: id, using: using);
+    }
+  }
+
+  @override
+  void encodeMap<K, V>(String key, Map<K, V> value, {int? id, Encodable<K>? keyUsing, Encodable<V>? valueUsing}) {
+    tick();
+    _packer.packString(key);
+    MsgPackEncoder._(_packer).encodeMap(value, keyUsing: keyUsing, valueUsing: valueUsing);
+  }
+
+  @override
+  void encodeMapOrNull<K, V>(String key, Map<K, V>? value,
+      {int? id, Encodable<K>? keyUsing, Encodable<V>? valueUsing}) {
+    if (value == null) {
+      encodeNull(key, id: id);
+    } else {
+      encodeMap(key, value, id: id, keyUsing: keyUsing, valueUsing: valueUsing);
+    }
+  }
+
+  @override
+  IteratedEncoder encodeIterated(String key, {int? id}) {
+    tick();
+    _packer.packString(key);
+    return MsgPackIteratedEncoder(_packer);
+  }
+
+  @override
+  KeyedEncoder encodeKeyed(String key, {int? id}) {
+    tick();
+    _packer.packString(key);
+    return MsgPackKeyedEncoder._(_packer);
   }
 
   @override
@@ -1021,8 +884,77 @@ class Unpacker {
       return unpackList();
     } else if ((b & 0xF0) == 0x80 || b == 0xde || b == 0xdf) {
       return unpackMap();
+    } else if ((b >= 0xd4 && b <= 0xd8) || (b >= 0xc7 && b <= 0xc9)) {
+      return unpackExt();
     } else {
       throw _formatException('Unknown', b);
+    }
+  }
+
+  int _getExtType() {
+    var b = _d.getUint8(_offset);
+    if (b >= 0xd4 && b <= 0xd8) {
+      return _d.getInt8(_offset + 1);
+    } else if (b >= 0xc7 && b <= 0xc9) {
+      var o = _offset + (1 << ((b & 0xF) - 7)) + 1;
+      return _d.getInt8(o);
+    } else {
+      throw _formatException('Unknown', b);
+    }
+  }
+
+  Object? unpackExt() {
+    var b = _d.getUint8(_offset++);
+    if (b >= 0xd4 && b <= 0xd8) {
+      var t = _d.getInt8(_offset++);
+      var l = 1 << (b & 0xF - 4);
+      return _unpackExt(t, l);
+    } else if (b >= 0xc7 && b <= 0xc9) {
+      var l = 0;
+      if (b == 0xc7) {
+        l = _d.getUint8(_offset++);
+      } else if (b == 0xc8) {
+        l = _d.getUint16(_offset);
+        _offset += 2;
+      } else if (b == 0xc9) {
+        l = _d.getUint32(_offset);
+        _offset += 4;
+      }
+      var t = _d.getInt8(_offset++);
+      return _unpackExt(t, l);
+    } else {
+      throw _formatException('Unknown', b);
+    }
+  }
+
+  Object? _unpackExt(int type, int len) {
+    if (type == -1) {
+      return _unpackTimestamp(len);
+    } else {
+      throw _formatException('Unknown', type);
+    }
+  }
+
+  DateTime _unpackTimestamp(int len) {
+    switch (len) {
+      case 4:
+        var sec = _d.getUint32(_offset);
+        _offset += 4;
+        return DateTime.fromMillisecondsSinceEpoch(sec * 1000, isUtc: true);
+      case 8:
+        var data = _d.getUint64(_offset);
+        _offset += 8;
+        var nsec = data >> 34;
+        var sec = data & 0x00000003ffffffff;
+        return DateTime.fromMillisecondsSinceEpoch(sec * 1000 + nsec ~/ 1000000, isUtc: true);
+      case 12:
+        var nsec = _d.getUint32(_offset);
+        _offset += 4;
+        var sec = _d.getInt64(_offset);
+        _offset += 8;
+        return DateTime.fromMillisecondsSinceEpoch(sec * 1000 + nsec ~/ 1000000, isUtc: true);
+      default:
+        throw _formatException('Unknown', len);
     }
   }
 
@@ -1135,6 +1067,8 @@ class Packer {
         _pack(k);
         _pack(value[k]);
       }
+    } else if (value is DateTime) {
+      packTimestamp(value);
     } else {
       throw ArgumentError('Unsupported type: ${value.runtimeType}');
     }
@@ -1332,6 +1266,37 @@ class Packer {
       _offset += 4;
     } else {
       throw ArgumentError('Max map length is 0xFFFFFFFF');
+    }
+  }
+
+  void packTimestamp(DateTime? v) {
+    if (v == null) {
+      packNull();
+      return;
+    }
+    var ms = v.millisecondsSinceEpoch;
+    var s = (ms / 1000).floor();
+    var ns = (ms % 1000) * 1000000;
+    if ((s >> 34) == 0) {
+      int data64 = (ns << 34) | s;
+      if (data64 & 0xffffffff00000000 == 0) {
+        // timestamp 32
+        _d.setUint8(_offset++, 0xd6);
+        _d.setInt8(_offset++, -1);
+        _d.setUint32(_offset, data64);
+      } else {
+        // timestamp 64
+        _d.setUint8(_offset++, 0xd7);
+        _d.setInt8(_offset++, -1);
+        _d.setUint64(_offset, data64);
+      }
+    } else {
+      // timestamp 96
+      _d.setUint8(_offset++, 0xc7);
+      _d.setUint8(_offset++, 12);
+      _d.setInt8(_offset++, -1);
+      _d.setUint32(_offset, ns);
+      _d.setInt64(_offset, s);
     }
   }
 

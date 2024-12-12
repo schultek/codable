@@ -7,10 +7,7 @@ abstract class RecursiveDelegatingDecoder implements Decoder {
   RecursiveDelegatingDecoder wrap(Decoder decoder);
 
   @override
-  T decodeObject<T>({required Decodable<T> using}) => delegate.decodeObject(using: using.wrap(this));
-
-  @override
-  T? decodeObjectOrNull<T>({required Decodable<T> using}) => delegate.decodeObjectOrNull(using: using.wrap(this));
+  DecodingType whatsNext() => delegate.whatsNext();
 
   @override
   bool decodeBool() => delegate.decodeBool();
@@ -19,30 +16,16 @@ abstract class RecursiveDelegatingDecoder implements Decoder {
   bool? decodeBoolOrNull() => delegate.decodeBoolOrNull();
 
   @override
-  double decodeDouble() => delegate.decodeDouble();
-
-  @override
-  double? decodeDoubleOrNull() => delegate.decodeDoubleOrNull();
-
-  @override
   int decodeInt() => delegate.decodeInt();
 
   @override
   int? decodeIntOrNull() => delegate.decodeIntOrNull();
 
   @override
-  List<E> decodeList<E>({Decodable<E>? using}) => delegate.decodeList(using: using?.wrap(this));
+  double decodeDouble() => delegate.decodeDouble();
 
   @override
-  List<E>? decodeListOrNull<E>({Decodable<E>? using}) => delegate.decodeListOrNull(using: using?.wrap(this));
-
-  @override
-  Map<K, V> decodeMap<K, V>({Decodable<K>? keyUsing, Decodable<V>? valueUsing}) =>
-      delegate.decodeMap(keyUsing: keyUsing?.wrap(this), valueUsing: valueUsing?.wrap(this));
-
-  @override
-  Map<K, V>? decodeMapOrNull<K, V>({Decodable<K>? keyUsing, Decodable<V>? valueUsing}) =>
-      delegate.decodeMapOrNull(keyUsing: keyUsing?.wrap(this), valueUsing: valueUsing?.wrap(this));
+  double? decodeDoubleOrNull() => delegate.decodeDoubleOrNull();
 
   @override
   num decodeNum() => delegate.decodeNum();
@@ -60,10 +43,24 @@ abstract class RecursiveDelegatingDecoder implements Decoder {
   bool decodeIsNull() => delegate.decodeIsNull();
 
   @override
-  T decodeCustom<T>() => delegate.decodeCustom<T>();
+  T decodeObject<T>({Decodable<T>? using}) => delegate.decodeObject(using: using?.wrap(this));
 
   @override
-  dynamic decodeDynamic() => delegate.decodeDynamic();
+  T? decodeObjectOrNull<T>({Decodable<T>? using}) => delegate.decodeObjectOrNull(using: using?.wrap(this));
+
+  @override
+  List<E> decodeList<E>({Decodable<E>? using}) => delegate.decodeList(using: using?.wrap(this));
+
+  @override
+  List<E>? decodeListOrNull<E>({Decodable<E>? using}) => delegate.decodeListOrNull(using: using?.wrap(this));
+
+  @override
+  Map<K, V> decodeMap<K, V>({Decodable<K>? keyUsing, Decodable<V>? valueUsing}) =>
+      delegate.decodeMap(keyUsing: keyUsing?.wrap(this), valueUsing: valueUsing?.wrap(this));
+
+  @override
+  Map<K, V>? decodeMapOrNull<K, V>({Decodable<K>? keyUsing, Decodable<V>? valueUsing}) =>
+      delegate.decodeMapOrNull(keyUsing: keyUsing?.wrap(this), valueUsing: valueUsing?.wrap(this));
 
   @override
   IteratedDecoder decodeIterated() => delegate.decodeIterated();
@@ -75,16 +72,10 @@ abstract class RecursiveDelegatingDecoder implements Decoder {
   MappedDecoder decodeMapped() => delegate.decodeMapped();
 
   @override
-  Never expect(String expect) => delegate.expect(expect);
-
-  @override
-  DecodingType whatsNext() => delegate.whatsNext();
-
-  @override
-  T? decodeCustomOrNull<T>() => delegate.decodeCustomOrNull<T>();
-
-  @override
   bool isHumanReadable() => delegate.isHumanReadable();
+  
+  @override
+  Never expect(String expect) => delegate.expect(expect);
 }
 
 extension _Wrap<T> on Decodable<T> {

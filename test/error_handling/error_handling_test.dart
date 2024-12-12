@@ -1,5 +1,4 @@
 import 'package:codable/core.dart';
-import 'package:codable/extended.dart';
 import 'package:codable/standard.dart';
 import 'package:test/test.dart';
 
@@ -12,7 +11,7 @@ void main() {
   group('error handling', () {
     test('throws unexpected type error on wrong token', () {
       expect(
-        () => DecodableUtils.fromHandler<Uri>(decode: (decoder) {
+        () => Decodable<Uri>.fromHandler((decoder) {
           return Uri.parse(decoder.decodeString());
         }).fromMap({}),
         throwsA(isA<CodableException>().having(
@@ -25,7 +24,7 @@ void main() {
 
     test('throws unexpected type error on expect call', () {
       expect(
-        () => DecodableUtils.fromHandler<DateTime>(decode: (decoder) {
+        () => Decodable<DateTime>.fromHandler((decoder) {
           return decoder.expect('String or int');
         }).fromMap({}),
         throwsA(isA<CodableException>().having(
@@ -38,10 +37,10 @@ void main() {
 
     test('throws wrapped exception with decoding path', () {
       expect(
-        () => DecodableUtils.fromHandler<Data>(decode: (decoder) {
+        () => Decodable.fromHandler((decoder) {
           return Data(decoder.decodeMapped().decodeObject<Uri>(
             'value',
-            using: DecodableUtils.fromHandler(decode: (decoder) {
+            using: Decodable.fromHandler((decoder) {
               return Uri.parse(decoder.decodeMapped().decodeString('path'));
             }),
           ));
@@ -56,10 +55,10 @@ void main() {
       );
 
       expect(
-        () => DecodableUtils.fromHandler<Data>(decode: (decoder) {
+        () => Decodable.fromHandler((decoder) {
           return Data(decoder.decodeMapped().decodeList<Uri>(
             'values',
-            using: DecodableUtils.fromHandler(decode: (decoder) {
+            using: Decodable.fromHandler((decoder) {
               return Uri.parse(decoder.decodeMapped().decodeString('path'));
             }),
           ));

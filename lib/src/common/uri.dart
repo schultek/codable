@@ -8,7 +8,7 @@ class UriCodable implements Codable<Uri> {
   Uri decode(Decoder decoder) {
     return switch (decoder.whatsNext()) {
       DecodingType.string || DecodingType.unknown => Uri.parse(decoder.decodeString()),
-      DecodingType<Uri>() => decoder.decodeCustom<Uri>(),
+      DecodingType<Uri>() => decoder.decodeObject<Uri>(),
       _ => decoder.expect('string or custom uri'),
     };
   }
@@ -16,7 +16,7 @@ class UriCodable implements Codable<Uri> {
   @override
   void encode(Uri value, Encoder encoder) {
     if (encoder.canEncodeCustom<Uri>()) {
-      encoder.encodeCustom<Uri>(value);
+      encoder.encodeObject<Uri>(value);
     } else {
       encoder.encodeString(value.toString());
     }

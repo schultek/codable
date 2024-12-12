@@ -1,8 +1,7 @@
 // A collection of errors that can be thrown by implementations using the codable package.
-class CodableException implements Exception {
-  CodableException._(this.message);
-
-  final String message;
+abstract class CodableException implements Exception {
+ 
+  String get message;
 
   @override
   String toString() => 'CodableException: $message';

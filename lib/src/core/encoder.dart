@@ -22,11 +22,6 @@ import 'interface.dart';
 /// An [SelfEncodable] or [Encodable] implementation is expected to call exactly one of the encoding methods a single time.
 /// Never more or less.
 abstract interface class Encoder {
-  /// Encodes a dynamic value.
-  ///
-  /// Non-self-describing formats may not support this method.
-  void encodeDynamic(dynamic value);
-
   /// Encodes a boolean value.
   void encodeBool(bool value);
 
@@ -60,6 +55,28 @@ abstract interface class Encoder {
   /// Encodes 'null'.
   void encodeNull();
 
+  /// Checks if the encoder can encode the custom type [T].
+  ///
+  /// When this method returns `true`, the [encodeObject] method can be called with the type [T].
+  bool canEncodeCustom<T>();
+
+  /// Encodes an object of type [T].
+  ///
+  /// This tries to encode the object using one of the following ways:
+  /// 1. If the [using] parameter is provided, it forwards the encoding to the provided [Encodable] implementation.
+  /// 2. If the object is a [SelfEncodable], it calls [SelfEncodable.encode] on the object.
+  /// 3. If the object is a supported primitive value, it encodes it as such.
+  /// 4. If none of the above applies, an error is thrown.
+  /// 
+  /// This should only be called if the format returned `true` from [canEncodeCustom]<T> or
+  /// is otherwise known to support [T] as a custom type.
+  void encodeObject<T>(T value, {Encodable<T>? using});
+
+  /// Encodes a nullable object of type [T].
+  ///
+  /// When the value is not null, this behaves the same as [encodeObject].
+  void encodeObjectOrNull<T>(T? value, {Encodable<T>? using});
+
   /// Encodes an iterable of [E].
   ///
   /// Optionally takes an [Encodable] function to encode each element.
@@ -80,23 +97,6 @@ abstract interface class Encoder {
   /// Optionally takes [Encodable] functions to encode each key and value.
   void encodeMapOrNull<K, V>(Map<K, V>? value, {Encodable<K>? keyUsing, Encodable<V>? valueUsing});
 
-  /// Checks if the encoder can encode the custom type [T].
-  ///
-  /// When this method returns `true`, the [encodeCustom] method can be called with the type [T].
-  bool canEncodeCustom<T>();
-
-  /// Encodes a value of the custom type [T].
-  ///
-  /// This should only be called if the format returned `true` from [canEncodeCustom]<T> or
-  /// is otherwise known to support [T] as a custom type.
-  void encodeCustom<T>(T value);
-
-  /// Encodes a nullable value of the custom type [T].
-  ///
-  /// This should only be called if the format returned `true` from [canEncodeCustom]<T> or
-  /// is otherwise known to support [T] as a custom type.
-  void encodeCustomOrNull<T>(T? value);
-
   /// Starts encoding an iterated collection or nested values.
   ///
   /// The returned [IteratedEncoder] should be used to encode the items in the collection.
@@ -108,16 +108,6 @@ abstract interface class Encoder {
   /// The returned [KeyedEncoder] should be used to encode the key-value pairs.
   /// The [KeyedEncoder.end] method should be called when all key-value pairs have been encoded.
   KeyedEncoder encodeKeyed();
-
-  /// Encodes an object of type [T].
-  ///
-  /// This forwards the encoding to the provided [Encodable] implementation.
-  void encodeObject<T>(T value, {required Encodable<T> using});
-
-  /// Encodes a nullable object of type [T].
-  ///
-  /// When the value is not null, this forwards the encoding to the provided [Encodable] implementation.
-  void encodeObjectOrNull<T>(T? value, {required Encodable<T> using});
 
   /// Whether a [Encodable] implementation should prefer to encode their human-readable form.
   ///
@@ -151,11 +141,6 @@ abstract interface class IteratedEncoder implements Encoder {
 ///
 /// The [end] method should be called when all key-value pairs have been encoded.
 abstract interface class KeyedEncoder {
-  /// Encodes a dynamic value for the given key or id.
-  ///
-  /// Non-self-describing formats may not support this method.
-  void encodeDynamic(String key, dynamic value, {int? id});
-
   /// Encodes a boolean value for the given key or id.
   void encodeBool(String key, bool value, {int? id});
 
@@ -189,6 +174,28 @@ abstract interface class KeyedEncoder {
   /// Encodes 'null' for the given key or id.
   void encodeNull(String key, {int? id});
 
+  /// Checks if the encoder can encode the custom type [T].
+  ///
+  /// When this method returns `true`, the [encodeObject] method can be called with the type [T].
+  bool canEncodeCustom<T>();
+
+  /// Encodes an object of type [T] for the given key or id.
+  /// 
+  /// This tries to encode the object using one of the following ways:
+  /// 1. If the [using] parameter is provided, it forwards the encoding to the provided [Encodable] implementation.
+  /// 2. If the object is a [SelfEncodable], it calls [SelfEncodable.encode] on the object.
+  /// 3. If the object is a supported primitive value, it encodes it as such.
+  /// 4. If none of the above applies, an error is thrown.
+  /// 
+  /// This should only be called if the format returned `true` from [canEncodeCustom]<T> or
+  /// is otherwise known to support [T] as a custom type.
+  void encodeObject<T>(String key, T value, {int? id, Encodable<T>? using});
+
+  /// Encodes a nullable object of type [T] for the given key or id.
+  ///
+  /// When the value is not null, this behaves the same as [encodeObject].
+  void encodeObjectOrNull<T>(String key, T? value, {int? id, Encodable<T>? using});
+
   /// Encodes an iterable of [E] for the given key or id.
   ///
   /// Optionally takes an [Encodable] function to encode each element.
@@ -209,23 +216,6 @@ abstract interface class KeyedEncoder {
   /// Optionally takes [Encodable] functions to encode each key and value.
   void encodeMapOrNull<K, V>(String key, Map<K, V>? value, {int? id, Encodable<K>? keyUsing, Encodable<V>? valueUsing});
 
-  /// Checks if the encoder can encode the custom type [T].
-  ///
-  /// When this method returns `true`, the [encodeCustom] method can be called with the type [T].
-  bool canEncodeCustom<T>();
-
-  /// Encodes a value of the custom type [T] for the given key or id.
-  ///
-  /// This should only be called if the format returned `true` from [canEncodeCustom]<T> or
-  /// is otherwise known to support [T] as a custom type.
-  void encodeCustom<T>(String key, T value, {int? id});
-
-  /// Encodes a nullable value of the custom type [T] for the given key or id.
-  ///
-  /// This should only be called if the format returned `true` from [canEncodeCustom]<T> or
-  /// is otherwise known to support [T] as a custom type.
-  void encodeCustomOrNull<T>(String key, T? value, {int? id});
-
   /// Starts encoding an iterated collection or nested values for the given key or id.
   ///
   /// The returned [IteratedEncoder] should be used to encode the items in the collection.
@@ -237,16 +227,6 @@ abstract interface class KeyedEncoder {
   /// The returned [KeyedEncoder] should be used to encode the key-value pairs.
   /// The [KeyedEncoder.end] method should be called when all key-value pairs have been encoded.
   KeyedEncoder encodeKeyed(String key, {int? id});
-
-  /// Encodes an object of type [T] for the given key or id.
-  ///
-  /// This forwards the encoding to the provided [Encodable] implementation.
-  void encodeObject<T>(String key, T value, {int? id, required Encodable<T> using});
-
-  /// Encodes a nullable object of type [T] for the given key or id.
-  ///
-  /// When the value is not null, this forwards the encoding to the provided [Encodable] implementation.
-  void encodeObjectOrNull<T>(String key, T? value, {int? id, required Encodable<T> using});
 
   /// Whether a [Encodable] implementation should prefer to encode their human-readable form.
   ///

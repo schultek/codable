@@ -27,12 +27,12 @@ void main() {
     });
 
     test('decode from int', () {
-      final Color decoded = StandardDecoder.decode(1, Color.codable, isHumanReadable: false);
+      final Color decoded = StandardDecoder.decode(1, using: Color.codable, isHumanReadable: false);
       expect(decoded, Color.blue);
     });
 
     test('encode to int', () {
-      final Object? encoded = StandardEncoder.encode(Color.blue, Color.codable, isHumanReadable: false);
+      final Object? encoded = StandardEncoder.encode(Color.blue, using: Color.codable, isHumanReadable: false);
       expect(encoded, isA<int>());
       expect(encoded, 1);
     });

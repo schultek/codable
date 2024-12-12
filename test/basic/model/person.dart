@@ -41,15 +41,15 @@ class Person with PersonRaw implements SelfEncodable {
 
   @override
   void encode(Encoder encoder) {
-    final keyed = encoder.encodeKeyed();
-    keyed.encodeString('name', name);
-    keyed.encodeInt('age', age);
-    keyed.encodeDouble('height', height);
-    keyed.encodeBool('isDeveloper', isDeveloper);
-    keyed.encodeObjectOrNull('parent', parent, using: Encodable.self());
-    keyed.encodeIterable('hobbies', hobbies);
-    keyed.encodeIterable('friends', friends, using: Encodable.self());
-    keyed.end();
+    encoder.encodeKeyed()
+      ..encodeString('name', name)
+      ..encodeInt('age', age)
+      ..encodeDouble('height', height)
+      ..encodeBool('isDeveloper', isDeveloper)
+      ..encodeObjectOrNull('parent', parent)
+      ..encodeIterable('hobbies', hobbies)
+      ..encodeIterable('friends', friends)
+      ..end();
   }
 }
 

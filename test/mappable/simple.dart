@@ -1,5 +1,4 @@
 import 'package:codable/core.dart';
-import 'package:codable/extended.dart';
 
 import 'mapper.dart';
 
@@ -19,7 +18,7 @@ abstract class SimpleMapper1<T> extends Mapper<T> implements CodableMapper1<T> {
   const SimpleMapper1();
 
   @override
-  Codable<T> codable<A>([Codable<A>? codableA]) => CodableUtils.fromHandlers(
+  Codable<T> codable<A>([Codable<A>? codableA]) => Codable.fromHandlers(
         decode: (d) => decode<A>(d, codableA),
         encode: (v, e) => encode<A>(v, e, codableA),
       );
@@ -36,7 +35,7 @@ abstract class SimpleMapper2<T> extends Mapper<T> implements CodableMapper2<T> {
 
   @override
   Codable<T> codable<A, B>([Codable<A>? codableA, Codable<B>? codableB]) {
-    return CodableUtils.fromHandlers(
+    return Codable.fromHandlers(
       decode: (d) => decode<A, B>(d, codableA, codableB),
       encode: (v, e) => encode<A, B>(v, e, codableA, codableB),
     );

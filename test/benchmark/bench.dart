@@ -3,12 +3,14 @@ import 'package:test/test.dart';
 void compare(
   String name, {
   required void Function() self,
-  required void Function() other,
+  required void Function()? other,
 }) {
   test(name, () {
     print('== $name ==');
-    bench('self', self);
-    bench('other', other);
+    bench('codable', self);
+    if (other != null) {
+      bench('baseline', other);
+    }
   });
 }
 

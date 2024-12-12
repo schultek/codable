@@ -16,21 +16,9 @@ class CompatMappedDecoder implements MappedDecoder {
   final Map<Object, KeyedDecoder> decoders;
 
   @override
-  Object? decodeDynamic(String key, {int? id}) {
+  DecodingType whatsNext(String key, {int? id}) {
     var d = decoders[key] ?? decoders[id];
-    return d!.clone().decodeDynamic();
-  }
-
-  @override
-  String decodeString(String key, {int? id}) {
-    var d = decoders[key] ?? decoders[id];
-    return d!.clone().decodeString();
-  }
-
-  @override
-  String? decodeStringOrNull(String key, {int? id}) {
-    var d = decoders[key] ?? decoders[id];
-    return d?.clone().decodeStringOrNull();
+    return d!.clone().whatsNext();
   }
 
   @override
@@ -46,18 +34,6 @@ class CompatMappedDecoder implements MappedDecoder {
   }
 
   @override
-  double decodeDouble(String key, {int? id}) {
-    var d = decoders[key] ?? decoders[id];
-    return d!.clone().decodeDouble();
-  }
-
-  @override
-  double? decodeDoubleOrNull(String key, {int? id}) {
-    var d = decoders[key] ?? decoders[id];
-    return d?.clone().decodeDoubleOrNull();
-  }
-
-  @override
   int decodeInt(String key, {int? id}) {
     var d = decoders[key] ?? decoders[id];
     return d!.clone().decodeInt();
@@ -70,13 +46,55 @@ class CompatMappedDecoder implements MappedDecoder {
   }
 
   @override
-  T decodeObject<T>(String key, {int? id, required Decodable<T> using}) {
+  double decodeDouble(String key, {int? id}) {
+    var d = decoders[key] ?? decoders[id];
+    return d!.clone().decodeDouble();
+  }
+
+  @override
+  double? decodeDoubleOrNull(String key, {int? id}) {
+    var d = decoders[key] ?? decoders[id];
+    return d?.clone().decodeDoubleOrNull();
+  }
+
+  @override
+  num decodeNum(String key, {int? id}) {
+    var d = decoders[key] ?? decoders[id];
+    return d!.clone().decodeNum();
+  }
+
+  @override
+  num? decodeNumOrNull(String key, {int? id}) {
+    var d = decoders[key] ?? decoders[id];
+    return d?.clone().decodeNumOrNull();
+  }
+
+  @override
+  String decodeString(String key, {int? id}) {
+    var d = decoders[key] ?? decoders[id];
+    return d!.clone().decodeString();
+  }
+
+  @override
+  String? decodeStringOrNull(String key, {int? id}) {
+    var d = decoders[key] ?? decoders[id];
+    return d?.clone().decodeStringOrNull();
+  }
+
+  @override
+  bool decodeIsNull(String key, {int? id}) {
+    var d = decoders[key] ?? decoders[id];
+    return d != null && d.clone().decodeIsNull();
+  }
+
+  @override
+  T decodeObject<T>(String key, {int? id, Decodable<T>? using}) {
     var d = decoders[key] ?? decoders[id];
     return d!.clone().decodeObject(using: using);
   }
 
   @override
-  T? decodeObjectOrNull<T>(String key, {int? id, required Decodable<T> using}) {
+  T? decodeObjectOrNull<T>(String key, {int? id, Decodable<T>? using}) {
     var d = decoders[key] ?? decoders[id];
     return d?.clone().decodeObjectOrNull(using: using);
   }
@@ -106,27 +124,6 @@ class CompatMappedDecoder implements MappedDecoder {
   }
 
   @override
-  num decodeNum(String key, {int? id}) {
-    var d = decoders[key] ?? decoders[id];
-    return d!.clone().decodeNum();
-  }
-
-  @override
-  num? decodeNumOrNull(String key, {int? id}) {
-    var d = decoders[key] ?? decoders[id];
-    return d?.clone().decodeNumOrNull();
-  }
-
-  @override
-  DecodingType whatsNext(String key, {int? id}) {
-    var d = decoders[key] ?? decoders[id];
-    return d!.clone().whatsNext();
-  }
-
-  @override
-  Iterable<Object> get keys => decoders.keys;
-
-  @override
   IteratedDecoder decodeIterated(String key, {int? id}) {
     var d = decoders[key] ?? decoders[id];
     return d!.clone().decodeIterated();
@@ -145,27 +142,12 @@ class CompatMappedDecoder implements MappedDecoder {
   }
 
   @override
+  Iterable<Object> get keys => decoders.keys;
+
+  @override
   Never expect(String key, String expect, {int? id}) {
     var d = decoders[key] ?? decoders[id];
     return d!.clone().expect(expect);
-  }
-
-  @override
-  bool decodeIsNull(String key, {int? id}) {
-    var d = decoders[key] ?? decoders[id];
-    return d != null && d.clone().decodeIsNull();
-  }
-
-  @override
-  T decodeCustom<T>(String key, {int? id}) {
-    var d = decoders[key] ?? decoders[id];
-    return d!.clone().decodeCustom<T>();
-  }
-
-  @override
-  T? decodeCustomOrNull<T>(String key, {int? id}) {
-    var d = decoders[key] ?? decoders[id];
-    return d!.clone().decodeCustomOrNull<T>();
   }
 
   @override
@@ -187,8 +169,9 @@ class CompatKeyedDecoder implements KeyedDecoder {
   bool _done = false;
 
   @override
-  KeyedDecoder clone() {
-    return CompatKeyedDecoder._(decoder);
+  DecodingType whatsNext() {
+    final key = keys.current;
+    return decoder.whatsNext(key is String ? key : '', id: key is int ? key : null);
   }
 
   @override
@@ -205,26 +188,6 @@ class CompatKeyedDecoder implements KeyedDecoder {
   }
 
   @override
-  double decodeDouble() {
-    final key = keys.current;
-    return decoder.decodeDouble(key is String ? key : '', id: key is int ? key : null);
-  }
-
-  @override
-  double? decodeDoubleOrNull() {
-    if (_done) return null;
-    final key = keys.current;
-    return decoder.decodeDoubleOrNull(key is String ? key : '', id: key is int ? key : null);
-  }
-
-  @override
-  dynamic decodeDynamic() {
-    if (_done) return null;
-    final key = keys.current;
-    return decoder.decodeDynamic(key is String ? key : '', id: key is int ? key : null);
-  }
-
-  @override
   int decodeInt() {
     final key = keys.current;
     return decoder.decodeInt(key is String ? key : '', id: key is int ? key : null);
@@ -238,15 +201,62 @@ class CompatKeyedDecoder implements KeyedDecoder {
   }
 
   @override
-  IteratedDecoder decodeIterated() {
+  double decodeDouble() {
     final key = keys.current;
-    return decoder.decodeIterated(key is String ? key : '', id: key is int ? key : null);
+    return decoder.decodeDouble(key is String ? key : '', id: key is int ? key : null);
   }
 
   @override
-  KeyedDecoder decodeKeyed() {
+  double? decodeDoubleOrNull() {
+    if (_done) return null;
     final key = keys.current;
-    return decoder.decodeKeyed(key is String ? key : '', id: key is int ? key : null);
+    return decoder.decodeDoubleOrNull(key is String ? key : '', id: key is int ? key : null);
+  }
+
+  @override
+  num decodeNum() {
+    final key = keys.current;
+    return decoder.decodeNum(key is String ? key : '', id: key is int ? key : null);
+  }
+
+  @override
+  num? decodeNumOrNull() {
+    if (_done) return null;
+    final key = keys.current;
+    return decoder.decodeNumOrNull(key is String ? key : '', id: key is int ? key : null);
+  }
+
+  @override
+  String decodeString() {
+    final key = keys.current;
+    return decoder.decodeString(key is String ? key : '', id: key is int ? key : null);
+  }
+
+  @override
+  String? decodeStringOrNull() {
+    if (_done) return null;
+    final key = keys.current;
+    return decoder.decodeStringOrNull(key is String ? key : '', id: key is int ? key : null);
+  }
+
+  @override
+  bool decodeIsNull() {
+    if (_done) return false;
+    final key = keys.current;
+    return decoder.decodeIsNull(key is String ? key : '', id: key is int ? key : null);
+  }
+
+  @override
+  T decodeObject<T>({Decodable<T>? using}) {
+    final key = keys.current;
+    return decoder.decodeObject(key is String ? key : '', id: key is int ? key : null, using: using);
+  }
+
+  @override
+  T? decodeObjectOrNull<T>({Decodable<T>? using}) {
+    if (_done) return null;
+    final key = keys.current;
+    return decoder.decodeObjectOrNull(key is String ? key : '', id: key is int ? key : null, using: using);
   }
 
   @override
@@ -278,54 +288,21 @@ class CompatKeyedDecoder implements KeyedDecoder {
   }
 
   @override
+  IteratedDecoder decodeIterated() {
+    final key = keys.current;
+    return decoder.decodeIterated(key is String ? key : '', id: key is int ? key : null);
+  }
+
+  @override
+  KeyedDecoder decodeKeyed() {
+    final key = keys.current;
+    return decoder.decodeKeyed(key is String ? key : '', id: key is int ? key : null);
+  }
+
+  @override
   MappedDecoder decodeMapped() {
     final key = keys.current;
     return decoder.decodeMapped(key is String ? key : '', id: key is int ? key : null);
-  }
-
-  @override
-  num decodeNum() {
-    final key = keys.current;
-    return decoder.decodeNum(key is String ? key : '', id: key is int ? key : null);
-  }
-
-  @override
-  num? decodeNumOrNull() {
-    if (_done) return null;
-    final key = keys.current;
-    return decoder.decodeNumOrNull(key is String ? key : '', id: key is int ? key : null);
-  }
-
-  @override
-  T decodeObject<T>({required Decodable<T> using}) {
-    final key = keys.current;
-    return decoder.decodeObject(key is String ? key : '', id: key is int ? key : null, using: using);
-  }
-
-  @override
-  T? decodeObjectOrNull<T>({required Decodable<T> using}) {
-    if (_done) return null;
-    final key = keys.current;
-    return decoder.decodeObjectOrNull(key is String ? key : '', id: key is int ? key : null, using: using);
-  }
-
-  @override
-  String decodeString() {
-    final key = keys.current;
-    return decoder.decodeString(key is String ? key : '', id: key is int ? key : null);
-  }
-
-  @override
-  String? decodeStringOrNull() {
-    if (_done) return null;
-    final key = keys.current;
-    return decoder.decodeStringOrNull(key is String ? key : '', id: key is int ? key : null);
-  }
-
-  @override
-  Never expect(String expect) {
-    final key = keys.current;
-    return decoder.expect(key is String ? key : '', expect, id: key is int ? key : null);
   }
 
   @override
@@ -344,13 +321,6 @@ class CompatKeyedDecoder implements KeyedDecoder {
   }
 
   @override
-  bool decodeIsNull() {
-    if (_done) return false;
-    final key = keys.current;
-    return decoder.decodeIsNull(key is String ? key : '', id: key is int ? key : null);
-  }
-
-  @override
   void skipRemainingKeys() {
     while (keys.moveNext()) {
       // do nothing
@@ -358,26 +328,18 @@ class CompatKeyedDecoder implements KeyedDecoder {
   }
 
   @override
-  DecodingType whatsNext() {
-    final key = keys.current;
-    return decoder.whatsNext(key is String ? key : '', id: key is int ? key : null);
-  }
-
-  @override
-  T decodeCustom<T>() {
-    final key = keys.current;
-    return decoder.decodeCustom(key is String ? key : '', id: key is int ? key : null);
-  }
-
-  @override
-  T? decodeCustomOrNull<T>() {
-    if (_done) return null;
-    final key = keys.current;
-    return decoder.decodeCustomOrNull(key is String ? key : '', id: key is int ? key : null);
-  }
-
-  @override
   bool isHumanReadable() {
     return decoder.isHumanReadable();
+  }
+
+  @override
+  KeyedDecoder clone() {
+    return CompatKeyedDecoder._(decoder);
+  }
+
+  @override
+  Never expect(String expect) {
+    final key = keys.current;
+    return decoder.expect(key is String ? key : '', expect, id: key is int ? key : null);
   }
 }

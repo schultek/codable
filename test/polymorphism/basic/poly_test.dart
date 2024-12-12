@@ -1,7 +1,7 @@
 import 'package:codable/standard.dart';
 import 'package:test/test.dart';
 
-import 'model/animal.dart';
+import 'model/pet.dart';
 
 final dogMap = {'name': 'Jasper', 'breed': 'Australian Shepherd', 'type': 'dog'};
 final catMap = {'name': 'Whiskers', 'lives': 5, 'type': 'cat'};
@@ -21,15 +21,21 @@ void main() {
     });
 
     test('decodes discriminated subtype', () {
-      Animal animal = Animal.codable.fromMap(dogMap);
-      expect(animal, isA<Dog>());
-      expect((animal as Dog).name, "Jasper");
+      Pet pet = Pet.codable.fromMap(dogMap);
+      expect(pet, isA<Dog>());
+      expect((pet as Dog).name, "Jasper");
+    });
+
+    test('encodes base type', () {
+      Pet pet = Dog(name: 'Jasper', breed: 'Australian Shepherd');
+      Map<String, dynamic> map = pet.toMap();
+      expect(map, dogMap);
     });
 
     test('decodes default on unknown key', () {
-      Animal animal = Animal.codable.fromMap(birdMap);
-      expect(animal.runtimeType, Animal);
-      expect(animal.type, 'bird');
+      Pet pet = Pet.codable.fromMap(birdMap);
+      expect(pet.runtimeType, Pet);
+      expect(pet.type, 'bird');
     });
   });
 }

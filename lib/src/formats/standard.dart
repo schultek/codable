@@ -3,32 +3,26 @@ import 'package:codable/extended.dart';
 
 extension StandardDecodable<T> on Decodable<T> {
   T fromValue(Object? value) {
-    return StandardDecoder.decode<T>(value, this);
+    return StandardDecoder.decode<T>(value, using: this);
   }
 
-  T fromMap(Map<String, dynamic> map) {
-    return StandardDecoder.decode<T>(map, this);
-  }
+  T fromMap(Map<String, dynamic> map) => fromValue(map);
 }
 
 extension StandardEncodable<T> on Encodable<T> {
   Object? toValue(T value) {
-    return StandardEncoder.encode<T>(value, this);
+    return StandardEncoder.encode<T>(value, using: this);
   }
 
-  Map<String, dynamic> toMap(T value) {
-    return StandardEncoder.encode<T>(value, this) as Map<String, dynamic>;
-  }
+  Map<String, dynamic> toMap(T value) => toValue(value) as Map<String, dynamic>;
 }
 
 extension StandardSelfEncodable<T extends SelfEncodable> on T {
   Object? toValue() {
-    return StandardEncoder.encode<T>(this, Encodable.self());
+    return StandardEncoder.encode<T>(this);
   }
 
-  Map<String, dynamic> toMap() {
-    return StandardEncoder.encode<T>(this, Encodable.self()) as Map<String, dynamic>;
-  }
+  Map<String, dynamic> toMap() => toValue() as Map<String, dynamic>;
 }
 
 abstract class _StandardDecoder {
@@ -41,7 +35,6 @@ abstract class _StandardDecoder {
     return _isHumanReadable;
   }
 
-  @pragma('vm:prefer-inline')
   DecodingType _whatsNext(Object? value) {
     return switch (value) {
       null => DecodingType.nil,
@@ -55,14 +48,14 @@ abstract class _StandardDecoder {
     };
   }
 
-  @pragma('vm:prefer-inline')
-  V _decode<V>(dynamic value, Decodable<V> decodable) {
+  V _decode<V>(dynamic value, Decodable<V>? decodable) {
     return StandardDecoder._(value, _isHumanReadable, _customTypes).decodeObject(using: decodable);
   }
 
-  @pragma('vm:prefer-inline')
   List<E> _decodeList<E>(List value, Decodable<E>? using) {
-    if (using == null) return value.cast<E>();
+    if (using == null) {
+      return value.cast<E>();
+    }
     final list = <E>[];
     var i = 0;
     try {
@@ -75,29 +68,12 @@ abstract class _StandardDecoder {
     return list;
   }
 
-  @pragma('vm:prefer-inline')
   Map<K, V> _decodeMap<K, V>(Map value, Decodable<K>? keyUsing, Decodable<V>? valueUsing) {
     try {
-      return switch ((keyUsing, valueUsing)) {
-        (null, null) => value.cast<K, V>(),
-        (final ku?, null) => value.map((key, value) => MapEntry(_decode(key, ku), value as V)),
-        (null, final vu?) => value.map((key, value) => MapEntry(key as K, _decode(value, vu))),
-        (final ku?, final vu?) => value.map((key, value) => MapEntry(_decode(key, ku), _decode(value, vu))),
-      };
+      return value.map((key, value) => MapEntry(_decode(key, keyUsing), _decode(value, valueUsing)));
     } catch (e, st) {
       Error.throwWithStackTrace(CodableException.wrap(e, method: 'decode', hint: 'Map'), st);
     }
-  }
-
-  @pragma('vm:prefer-inline')
-  T _decodeCustom<T>(dynamic value) {
-    if (value is T) return value;
-    final delegate = _customTypes.whereType<CustomTypeDelegate<T>>().firstOrNull;
-    if (delegate == null) {
-      throw CodableException.unsupportedMethod('StandardDecoder', 'decodeCustom<$T>',
-          reason: 'No custom type delegate was provided for type $T.');
-    }
-    return _decode(value, delegate);
   }
 }
 
@@ -107,36 +83,19 @@ class StandardDecoder extends _StandardDecoder implements Decoder {
   final Object? _value;
 
   static T decode<T>(
-    Object? value,
-    Decodable<T> decodable, {
+    Object? value, {
+    Decodable<T>? using,
     bool isHumanReadable = true,
     List<CustomTypeDelegate> customTypes = const [],
   }) {
-    return StandardDecoder._(value, isHumanReadable, customTypes).decodeObject(using: decodable);
+    return StandardDecoder._(value, isHumanReadable, customTypes).decodeObject(using: using);
   }
 
-  @pragma('vm:prefer-inline')
   @override
-  T decodeObject<T>({required Decodable<T> using}) {
-    try {
-      return using.decode(this);
-    } catch (e, st) {
-      Error.throwWithStackTrace(CodableException.wrap(e, method: 'decode', hint: '$T'), st);
-    }
+  DecodingType whatsNext() {
+    return _whatsNext(_value);
   }
 
-  @pragma('vm:prefer-inline')
-  @override
-  T? decodeObjectOrNull<T>({required Decodable<T> using}) {
-    if (_value == null) return null;
-    try {
-      return using.decode(this);
-    } catch (e, st) {
-      Error.throwWithStackTrace(CodableException.wrap(e, method: 'decode', hint: '$T'), st);
-    }
-  }
-
-  @pragma('vm:prefer-inline')
   @override
   bool decodeBool() {
     try {
@@ -146,7 +105,6 @@ class StandardDecoder extends _StandardDecoder implements Decoder {
     }
   }
 
-  @pragma('vm:prefer-inline')
   @override
   bool? decodeBoolOrNull() {
     try {
@@ -156,27 +114,6 @@ class StandardDecoder extends _StandardDecoder implements Decoder {
     }
   }
 
-  @pragma('vm:prefer-inline')
-  @override
-  double decodeDouble() {
-    try {
-      return (_value as num).toDouble();
-    } on TypeError {
-      throw CodableException.unexpectedType(expected: 'double', actual: '${_value.runtimeType}', data: _value);
-    }
-  }
-
-  @pragma('vm:prefer-inline')
-  @override
-  double? decodeDoubleOrNull() {
-    try {
-      return (_value as num?)?.toDouble();
-    } on TypeError {
-      throw CodableException.unexpectedType(expected: 'double?', actual: '${_value.runtimeType}', data: _value);
-    }
-  }
-
-  @pragma('vm:prefer-inline')
   @override
   int decodeInt() {
     try {
@@ -186,7 +123,6 @@ class StandardDecoder extends _StandardDecoder implements Decoder {
     }
   }
 
-  @pragma('vm:prefer-inline')
   @override
   int? decodeIntOrNull() {
     try {
@@ -196,7 +132,87 @@ class StandardDecoder extends _StandardDecoder implements Decoder {
     }
   }
 
-  @pragma('vm:prefer-inline')
+  @override
+  double decodeDouble() {
+    try {
+      return (_value as num).toDouble();
+    } on TypeError {
+      throw CodableException.unexpectedType(expected: 'double', actual: '${_value.runtimeType}', data: _value);
+    }
+  }
+
+  @override
+  double? decodeDoubleOrNull() {
+    try {
+      return (_value as num?)?.toDouble();
+    } on TypeError {
+      throw CodableException.unexpectedType(expected: 'double?', actual: '${_value.runtimeType}', data: _value);
+    }
+  }
+
+  @override
+  num decodeNum() {
+    try {
+      return _value as num;
+    } on TypeError {
+      throw CodableException.unexpectedType(expected: 'num', actual: '${_value.runtimeType}', data: _value);
+    }
+  }
+
+  @override
+  num? decodeNumOrNull() {
+    try {
+      return _value as num?;
+    } on TypeError {
+      throw CodableException.unexpectedType(expected: 'num?', actual: '${_value.runtimeType}', data: _value);
+    }
+  }
+
+  @override
+  String decodeString() {
+    try {
+      return _value as String;
+    } on TypeError {
+      throw CodableException.unexpectedType(expected: 'String', actual: '${_value.runtimeType}', data: _value);
+    }
+  }
+
+  @override
+  String? decodeStringOrNull() {
+    try {
+      return _value as String?;
+    } on TypeError {
+      throw CodableException.unexpectedType(expected: 'String?', actual: '${_value.runtimeType}', data: _value);
+    }
+  }
+
+  @override
+  bool decodeIsNull() {
+    return _value == null;
+  }
+
+  @override
+  T decodeObject<T>({Decodable<T>? using}) {
+    try {
+      if (using != null) {
+        return using.decode(this);
+      }
+      final delegate = _customTypes.whereType<CustomTypeDelegate<T>>().firstOrNull;
+      if (delegate != null) {
+        return delegate.decode(this);
+      }
+      return _value as T;
+    } catch (e, st) {
+      Error.throwWithStackTrace(CodableException.wrap(e, method: 'decode', hint: '$T'), st);
+    }
+  }
+
+  @override
+  T? decodeObjectOrNull<T>({Decodable<T>? using}) {
+    if (_value == null) return null;
+    return decodeObject(using: using);
+  }
+
   @override
   List<I> decodeList<I>({Decodable<I>? using}) {
     try {
@@ -206,7 +222,6 @@ class StandardDecoder extends _StandardDecoder implements Decoder {
     }
   }
 
-  @pragma('vm:prefer-inline')
   @override
   List<I>? decodeListOrNull<I>({Decodable<I>? using}) {
     if (_value == null) return null;
@@ -217,7 +232,6 @@ class StandardDecoder extends _StandardDecoder implements Decoder {
     }
   }
 
-  @pragma('vm:prefer-inline')
   @override
   Map<K, V> decodeMap<K, V>({Decodable<K>? keyUsing, Decodable<V>? valueUsing}) {
     try {
@@ -227,7 +241,6 @@ class StandardDecoder extends _StandardDecoder implements Decoder {
     }
   }
 
-  @pragma('vm:prefer-inline')
   @override
   Map<K, V>? decodeMapOrNull<K, V>({Decodable<K>? keyUsing, Decodable<V>? valueUsing}) {
     if (_value == null) return null;
@@ -238,65 +251,6 @@ class StandardDecoder extends _StandardDecoder implements Decoder {
     }
   }
 
-  @pragma('vm:prefer-inline')
-  @override
-  num decodeNum() {
-    try {
-      return _value as num;
-    } on TypeError {
-      throw CodableException.unexpectedType(expected: 'num', actual: '${_value.runtimeType}', data: _value);
-    }
-  }
-
-  @pragma('vm:prefer-inline')
-  @override
-  num? decodeNumOrNull() {
-    try {
-      return _value as num?;
-    } on TypeError {
-      throw CodableException.unexpectedType(expected: 'num?', actual: '${_value.runtimeType}', data: _value);
-    }
-  }
-
-  @pragma('vm:prefer-inline')
-  @override
-  String decodeString() {
-    try {
-      return _value as String;
-    } on TypeError {
-      throw CodableException.unexpectedType(expected: 'String', actual: '${_value.runtimeType}', data: _value);
-    }
-  }
-
-  @pragma('vm:prefer-inline')
-  @override
-  String? decodeStringOrNull() {
-    try {
-      return _value as String?;
-    } on TypeError {
-      throw CodableException.unexpectedType(expected: 'String?', actual: '${_value.runtimeType}', data: _value);
-    }
-  }
-
-  @pragma('vm:prefer-inline')
-  @override
-  bool decodeIsNull() {
-    return _value == null;
-  }
-
-  @pragma('vm:prefer-inline')
-  @override
-  Decoder clone() {
-    return this;
-  }
-
-  @pragma('vm:prefer-inline')
-  @override
-  dynamic decodeDynamic() {
-    return _value;
-  }
-
-  @pragma('vm:prefer-inline')
   @override
   IteratedDecoder decodeIterated() {
     try {
@@ -306,13 +260,11 @@ class StandardDecoder extends _StandardDecoder implements Decoder {
     }
   }
 
-  @pragma('vm:prefer-inline')
   @override
   KeyedDecoder decodeKeyed() {
     return CompatKeyedDecoder.wrap(decodeMapped());
   }
 
-  @pragma('vm:prefer-inline')
   @override
   MappedDecoder decodeMapped() {
     try {
@@ -323,28 +275,14 @@ class StandardDecoder extends _StandardDecoder implements Decoder {
     }
   }
 
-  @pragma('vm:prefer-inline')
+  @override
+  Decoder clone() {
+    return this;
+  }
+
   @override
   Never expect(String expected) {
     throw CodableException.unexpectedType(expected: expected, actual: '${_value.runtimeType}', data: _value);
-  }
-
-  @pragma('vm:prefer-inline')
-  @override
-  DecodingType whatsNext() {
-    return _whatsNext(_value);
-  }
-
-  @pragma('vm:prefer-inline')
-  @override
-  T decodeCustom<T>() {
-    return _decodeCustom<T>(_value);
-  }
-
-  @override
-  T? decodeCustomOrNull<T>() {
-    if (_value == null) return null;
-    return _decodeCustom<T>(_value);
   }
 }
 
@@ -353,29 +291,11 @@ class StandardMappedDecoder extends _StandardDecoder implements MappedDecoder {
 
   final Map<Object, dynamic> _value;
 
-  @pragma('vm:prefer-inline')
   @override
-  T decodeObject<T>(String key, {int? id, required Decodable<T> using}) {
-    try {
-      return _decode(_value[key], using);
-    } catch (e, st) {
-      Error.throwWithStackTrace(CodableException.wrap(e, method: 'decode', hint: '["$key"]'), st);
-    }
+  DecodingType whatsNext(String key, {int? id}) {
+    return _whatsNext(_value[key]);
   }
 
-  @pragma('vm:prefer-inline')
-  @override
-  T? decodeObjectOrNull<T>(String key, {int? id, required Decodable<T> using}) {
-    final v = _value[key];
-    if (v == null) return null;
-    try {
-      return _decode(v, using);
-    } catch (e, st) {
-      Error.throwWithStackTrace(CodableException.wrap(e, method: 'decode', hint: '["$key"]'), st);
-    }
-  }
-
-  @pragma('vm:prefer-inline')
   @override
   bool decodeBool(String key, {int? id}) {
     try {
@@ -389,7 +309,6 @@ class StandardMappedDecoder extends _StandardDecoder implements MappedDecoder {
     }
   }
 
-  @pragma('vm:prefer-inline')
   @override
   bool? decodeBoolOrNull(String key, {int? id}) {
     try {
@@ -403,35 +322,6 @@ class StandardMappedDecoder extends _StandardDecoder implements MappedDecoder {
     }
   }
 
-  @pragma('vm:prefer-inline')
-  @override
-  double decodeDouble(String key, {int? id}) {
-    try {
-      return (_value[key] as num).toDouble();
-    } on TypeError {
-      throw CodableException.wrap(
-        CodableException.unexpectedType(expected: 'double', actual: '${_value[key].runtimeType}', data: _value[key]),
-        method: 'decode',
-        hint: '["$key"]',
-      );
-    }
-  }
-
-  @pragma('vm:prefer-inline')
-  @override
-  double? decodeDoubleOrNull(String key, {int? id}) {
-    try {
-      return (_value[key] as num?)?.toDouble();
-    } on TypeError {
-      throw CodableException.wrap(
-        CodableException.unexpectedType(expected: 'double?', actual: '${_value[key].runtimeType}', data: _value[key]),
-        method: 'decode',
-        hint: '["$key"]',
-      );
-    }
-  }
-
-  @pragma('vm:prefer-inline')
   @override
   int decodeInt(String key, {int? id}) {
     try {
@@ -445,7 +335,6 @@ class StandardMappedDecoder extends _StandardDecoder implements MappedDecoder {
     }
   }
 
-  @pragma('vm:prefer-inline')
   @override
   int? decodeIntOrNull(String key, {int? id}) {
     try {
@@ -459,7 +348,109 @@ class StandardMappedDecoder extends _StandardDecoder implements MappedDecoder {
     }
   }
 
-  @pragma('vm:prefer-inline')
+  @override
+  double decodeDouble(String key, {int? id}) {
+    try {
+      return (_value[key] as num).toDouble();
+    } on TypeError {
+      throw CodableException.wrap(
+        CodableException.unexpectedType(expected: 'double', actual: '${_value[key].runtimeType}', data: _value[key]),
+        method: 'decode',
+        hint: '["$key"]',
+      );
+    }
+  }
+
+  @override
+  double? decodeDoubleOrNull(String key, {int? id}) {
+    try {
+      return (_value[key] as num?)?.toDouble();
+    } on TypeError {
+      throw CodableException.wrap(
+        CodableException.unexpectedType(expected: 'double?', actual: '${_value[key].runtimeType}', data: _value[key]),
+        method: 'decode',
+        hint: '["$key"]',
+      );
+    }
+  }
+
+  @override
+  num decodeNum(String key, {int? id}) {
+    try {
+      return _value[key] as num;
+    } on TypeError {
+      throw CodableException.wrap(
+        CodableException.unexpectedType(expected: 'num', actual: '${_value[key].runtimeType}', data: _value[key]),
+        method: 'decode',
+        hint: '["$key"]',
+      );
+    }
+  }
+
+  @override
+  num? decodeNumOrNull(String key, {int? id}) {
+    try {
+      return _value[key] as num?;
+    } on TypeError {
+      throw CodableException.wrap(
+        CodableException.unexpectedType(expected: 'num?', actual: '${_value[key].runtimeType}', data: _value[key]),
+        method: 'decode',
+        hint: '["$key"]',
+      );
+    }
+  }
+
+  @override
+  String decodeString(String key, {int? id}) {
+    try {
+      return _value[key] as String;
+    } on TypeError {
+      throw CodableException.wrap(
+        CodableException.unexpectedType(expected: 'String', actual: '${_value[key].runtimeType}', data: _value[key]),
+        method: 'decode',
+        hint: '["$key"]',
+      );
+    }
+  }
+
+  @override
+  String? decodeStringOrNull(String key, {int? id}) {
+    try {
+      return _value[key] as String?;
+    } on TypeError {
+      throw CodableException.wrap(
+        CodableException.unexpectedType(expected: 'String?', actual: '${_value[key].runtimeType}', data: _value[key]),
+        method: 'decode',
+        hint: '["$key"]',
+      );
+    }
+  }
+
+  @override
+  bool decodeIsNull(String key, {int? id}) {
+    return _value.containsKey(key) && _value[key] == null;
+  }
+
+  @override
+  T decodeObject<T>(String key, {int? id, Decodable<T>? using}) {
+    try {
+      return _decode(_value[key], using);
+    } catch (e, st) {
+      Error.throwWithStackTrace(CodableException.wrap(e, method: 'decode', hint: '["$key"]'), st);
+    }
+  }
+
+  @override
+  T? decodeObjectOrNull<T>(String key, {int? id, Decodable<T>? using}) {
+    final v = _value[key];
+    if (v == null) return null;
+    try {
+      return _decode(v, using);
+    } catch (e, st) {
+      Error.throwWithStackTrace(CodableException.wrap(e, method: 'decode', hint: '["$key"]'), st);
+    }
+  }
+
   @override
   List<E> decodeList<E>(String key, {int? id, Decodable<E>? using}) {
     try {
@@ -476,14 +467,12 @@ class StandardMappedDecoder extends _StandardDecoder implements MappedDecoder {
     }
   }
 
-  @pragma('vm:prefer-inline')
   @override
   List<E>? decodeListOrNull<E>(String key, {int? id, Decodable<E>? using}) {
     if (_value[key] == null) return null;
     return decodeList(key, id: id, using: using);
   }
 
-  @pragma('vm:prefer-inline')
   @override
   Map<K, V> decodeMap<K, V>(String key, {int? id, Decodable<K>? keyUsing, Decodable<V>? valueUsing}) {
     try {
@@ -500,86 +489,15 @@ class StandardMappedDecoder extends _StandardDecoder implements MappedDecoder {
     }
   }
 
-  @pragma('vm:prefer-inline')
   @override
   Map<K, V>? decodeMapOrNull<K, V>(String key, {int? id, Decodable<K>? keyUsing, Decodable<V>? valueUsing}) {
     if (_value[key] == null) return null;
     return decodeMap(key, id: id, keyUsing: keyUsing, valueUsing: valueUsing);
   }
 
-  @pragma('vm:prefer-inline')
-  @override
-  num decodeNum(String key, {int? id}) {
-    try {
-      return _value[key] as num;
-    } on TypeError {
-      throw CodableException.wrap(
-        CodableException.unexpectedType(expected: 'num', actual: '${_value[key].runtimeType}', data: _value[key]),
-        method: 'decode',
-        hint: '["$key"]',
-      );
-    }
-  }
-
-  @pragma('vm:prefer-inline')
-  @override
-  num? decodeNumOrNull(String key, {int? id}) {
-    try {
-      return _value[key] as num?;
-    } on TypeError {
-      throw CodableException.wrap(
-        CodableException.unexpectedType(expected: 'num?', actual: '${_value[key].runtimeType}', data: _value[key]),
-        method: 'decode',
-        hint: '["$key"]',
-      );
-    }
-  }
-
-  @pragma('vm:prefer-inline')
-  @override
-  String decodeString(String key, {int? id}) {
-    try {
-      return _value[key] as String;
-    } on TypeError {
-      throw CodableException.wrap(
-        CodableException.unexpectedType(expected: 'String', actual: '${_value[key].runtimeType}', data: _value[key]),
-        method: 'decode',
-        hint: '["$key"]',
-      );
-    }
-  }
-
-  @pragma('vm:prefer-inline')
-  @override
-  String? decodeStringOrNull(String key, {int? id}) {
-    try {
-      return _value[key] as String?;
-    } on TypeError {
-      throw CodableException.wrap(
-        CodableException.unexpectedType(expected: 'String?', actual: '${_value[key].runtimeType}', data: _value[key]),
-        method: 'decode',
-        hint: '["$key"]',
-      );
-    }
-  }
-
-  @pragma('vm:prefer-inline')
-  @override
-  dynamic decodeDynamic(String key, {int? id}) {
-    return _value[key];
-  }
-
-  @pragma('vm:prefer-inline')
-  @override
-  DecodingType whatsNext(String key, {int? id}) {
-    return _whatsNext(_value[key]);
-  }
-
-  @pragma('vm:prefer-inline')
   @override
   Iterable<Object> get keys => _value.keys;
 
-  @pragma('vm:prefer-inline')
   @override
   IteratedDecoder decodeIterated(String key, {int? id}) {
     try {
@@ -593,13 +511,11 @@ class StandardMappedDecoder extends _StandardDecoder implements MappedDecoder {
     }
   }
 
-  @pragma('vm:prefer-inline')
   @override
   KeyedDecoder decodeKeyed(String key, {int? id}) {
     return CompatKeyedDecoder.wrap(decodeMapped(key));
   }
 
-  @pragma('vm:prefer-inline')
   @override
   MappedDecoder decodeMapped(String key, {int? id}) {
     try {
@@ -614,7 +530,6 @@ class StandardMappedDecoder extends _StandardDecoder implements MappedDecoder {
     }
   }
 
-  @pragma('vm:prefer-inline')
   @override
   Never expect(String key, String expected, {int? id}) {
     throw CodableException.wrap(
@@ -622,32 +537,6 @@ class StandardMappedDecoder extends _StandardDecoder implements MappedDecoder {
       method: 'decode',
       hint: '["$key"]',
     );
-  }
-
-  @pragma('vm:prefer-inline')
-  @override
-  bool decodeIsNull(String key, {int? id}) {
-    return _value.containsKey(key) && _value[key] == null;
-  }
-
-  @pragma('vm:prefer-inline')
-  @override
-  T decodeCustom<T>(String key, {int? id}) {
-    try {
-      return _decodeCustom<T>(_value[key]);
-    } catch (e, st) {
-      Error.throwWithStackTrace(CodableException.wrap(e, method: 'decode', hint: '["$key"]'), st);
-    }
-  }
-
-  @override
-  T? decodeCustomOrNull<T>(String key, {int? id}) {
-    if (_value[key] == null) return null;
-    try {
-      return _decodeCustom<T>(_value[key]);
-    } catch (e, st) {
-      Error.throwWithStackTrace(CodableException.wrap(e, method: 'decode', hint: '["$key"]'), st);
-    }
   }
 }
 
@@ -698,31 +587,30 @@ abstract class _StandardEncoder {
     return _customTypes.whereType<CustomTypeDelegate<T>>().isNotEmpty;
   }
 
-  @pragma('vm:prefer-inline')
-  Object? _encode<V>(V value, Encodable<V> encodable) {
+  Object? _encode<V>(V value, Encodable<V>? encodable) {
+    if (encodable == null && value is! SelfEncodable) return value;
+
     final encoder = StandardEncoder(_isHumanReadable, _customTypes);
-    encodable.encode(value, encoder);
+    encoder.encodeObject(value, using: encodable);
     return encoder._value;
   }
 
-  @pragma('vm:prefer-inline')
-  Map _encodeMap<K, V>(Map<K, V> value, Encodable<K>? keyUsing, Encodable<V>? valueUsing) {
-    return switch ((keyUsing, valueUsing)) {
-      (null, null) => value,
-      (final k?, null) => value.map((key, value) => MapEntry(_encode(key, k), value)),
-      (null, final v?) => value.map((key, value) => MapEntry(key, _encode(value, v))),
-      (final k?, final v?) => value.map((key, value) => MapEntry(_encode(key, k), _encode(value, v))),
-    };
+  List _encodeIterable<E>(Iterable<E> value, Encodable<E>? using) {
+    var list = [];
+    if (value case List v) {
+      for (var i = 0; i < value.length; i++) {
+        list.add(_encode(v[i], using));
+      }
+    } else {
+      for (var e in value) {
+        list.add(_encode(e, using));
+      }
+    }
+    return list;
   }
 
-  @pragma('vm:prefer-inline')
-  dynamic _encodeCustom<T>(T value) {
-    final delegate = _customTypes.whereType<CustomTypeDelegate<T>>().firstOrNull;
-    if (delegate == null) {
-      throw CodableException.unsupportedMethod('StandardEncoder', 'encodeCustom<$T>',
-          reason: 'No custom type delegate was provided for type $T.');
-    }
-    return _encode(value, delegate);
+  Map _encodeMap<K, V>(Map<K, V> value, Encodable<K>? keyUsing, Encodable<V>? valueUsing) {
+    return value.map((key, value) => MapEntry(_encode(key, keyUsing), _encode(value, valueUsing)));
   }
 }
 
@@ -732,13 +620,13 @@ class StandardEncoder extends _StandardEncoder implements Encoder {
   Object? _value;
 
   static Object? encode<T>(
-    T value,
-    Encodable<T> encodable, {
+    T value, {
+    Encodable<T>? using,
     bool isHumanReadable = true,
     List<CustomTypeDelegate> customTypes = const [],
   }) {
     final encoder = StandardEncoder(isHumanReadable, customTypes);
-    encodable.encode(value, encoder);
+    encoder.encodeObject(value, using: using);
     return encoder._value;
   }
 
@@ -748,12 +636,7 @@ class StandardEncoder extends _StandardEncoder implements Encoder {
   }
 
   @override
-  IteratedEncoder encodeIterated() {
-    return StandardIteratedEncoder._(_value = <dynamic>[], _isHumanReadable, _customTypes);
-  }
-
-  @override
-  void encodeDouble(double value) {
+  void encodeBoolOrNull(bool? value) {
     _value = value;
   }
 
@@ -763,66 +646,13 @@ class StandardEncoder extends _StandardEncoder implements Encoder {
   }
 
   @override
-  void encodeIterable<E>(Iterable<E> value, {Encodable<E>? using}) {
-    if (using == null) {
-      _value = value;
-      return;
-    }
-    _value = value.map((e) => _encode(e, using)).toList();
-  }
-
-  @override
-  KeyedEncoder encodeKeyed() {
-    return StandardKeyedEncoder._(_value = <String, dynamic>{}, _isHumanReadable, _customTypes);
-  }
-
-  @override
-  void encodeMap<K, V>(Map<K, V> value, {Encodable<K>? keyUsing, Encodable<V>? valueUsing}) {
-    _value = _encodeMap(value, keyUsing, valueUsing);
-  }
-
-  @override
-  void encodeNull() {
-    _value = null;
-  }
-
-  @override
-  void encodeNum(num value) {
+  void encodeIntOrNull(int? value) {
     _value = value;
   }
 
   @override
-  void encodeObject<T>(T value, {required Encodable<T> using}) {
-    using.encode(value, this);
-  }
-
-  @override
-  void encodeString(String value) {
+  void encodeDouble(double value) {
     _value = value;
-  }
-
-  @override
-  void encodeCustom<T>(T value) {
-    _value = _encodeCustom<T>(value);
-  }
-
-  @override
-  void encodeDynamic(dynamic value) {
-    _value = value;
-  }
-
-  @override
-  void encodeBoolOrNull(bool? value) {
-    _value = value;
-  }
-
-  @override
-  void encodeCustomOrNull<T>(T? value) {
-    if (value == null) {
-      _value = null;
-      return;
-    }
-    _value = _encodeCustom<T>(value);
   }
 
   @override
@@ -831,8 +661,58 @@ class StandardEncoder extends _StandardEncoder implements Encoder {
   }
 
   @override
-  void encodeIntOrNull(int? value) {
+  void encodeNum(num value) {
     _value = value;
+  }
+
+  @override
+  void encodeNumOrNull(num? value) {
+    _value = value;
+  }
+
+  @override
+  void encodeString(String value) {
+    _value = value;
+  }
+
+  @override
+  void encodeStringOrNull(String? value) {
+    _value = value;
+  }
+
+  @override
+  void encodeNull() {
+    _value = null;
+  }
+
+  @override
+  void encodeObject<T>(T value, {Encodable<T>? using}) {
+    if (using != null) {
+      using.encode(value, this);
+    } else if (value is SelfEncodable) {
+      value.encode(this);
+    } else {
+      final delegate = _customTypes.whereType<CustomTypeDelegate<T>>().firstOrNull;
+      if (delegate != null) {
+        delegate.encode(value, this);
+      } else {
+        _value = value;
+      }
+    }
+  }
+
+  @override
+  void encodeObjectOrNull<T>(T? value, {Encodable<T>? using}) {
+    if (value == null) {
+      _value = null;
+      return;
+    }
+    encodeObject(value, using: using);
+  }
+
+  @override
+  void encodeIterable<E>(Iterable<E> value, {Encodable<E>? using}) {
+    _value = _encodeIterable(value, using);
   }
 
   @override
@@ -845,6 +725,11 @@ class StandardEncoder extends _StandardEncoder implements Encoder {
   }
 
   @override
+  void encodeMap<K, V>(Map<K, V> value, {Encodable<K>? keyUsing, Encodable<V>? valueUsing}) {
+    _value = _encodeMap(value, keyUsing, valueUsing);
+  }
+
+  @override
   void encodeMapOrNull<K, V>(Map<K, V>? value, {Encodable<K>? keyUsing, Encodable<V>? valueUsing}) {
     if (value == null) {
       _value = null;
@@ -854,22 +739,13 @@ class StandardEncoder extends _StandardEncoder implements Encoder {
   }
 
   @override
-  void encodeNumOrNull(num? value) {
-    _value = value;
+  IteratedEncoder encodeIterated() {
+    return StandardIteratedEncoder._(_value = <dynamic>[], _isHumanReadable, _customTypes);
   }
 
   @override
-  void encodeObjectOrNull<T>(T? value, {required Encodable<T> using}) {
-    if (value == null) {
-      _value = null;
-      return;
-    }
-    using.encode(value, this);
-  }
-
-  @override
-  void encodeStringOrNull(String? value) {
-    _value = value;
+  KeyedEncoder encodeKeyed() {
+    return StandardKeyedEncoder._(_value = <String, dynamic>{}, _isHumanReadable, _customTypes);
   }
 }
 
@@ -884,14 +760,7 @@ class StandardIteratedEncoder extends _StandardEncoder implements IteratedEncode
   }
 
   @override
-  IteratedEncoder encodeIterated() {
-    final list = <dynamic>[];
-    _value.add(list);
-    return StandardIteratedEncoder._(list, _isHumanReadable, _customTypes);
-  }
-
-  @override
-  void encodeDouble(double value) {
+  void encodeBoolOrNull(bool? value) {
     _value.add(value);
   }
 
@@ -901,73 +770,13 @@ class StandardIteratedEncoder extends _StandardEncoder implements IteratedEncode
   }
 
   @override
-  void encodeIterable<E>(Iterable<E> value, {Encodable<E>? using}) {
-    if (using == null) {
-      _value.add(value);
-      return;
-    }
-    _value.add(value.map((e) => _encode(e, using)).toList());
-  }
-
-  @override
-  KeyedEncoder encodeKeyed() {
-    final map = <String, dynamic>{};
-    _value.add(map);
-    return StandardKeyedEncoder._(map, _isHumanReadable, _customTypes);
-  }
-
-  @override
-  void encodeMap<K, V>(Map<K, V> value, {Encodable<K>? keyUsing, Encodable<V>? valueUsing}) {
-    _value.add(_encodeMap(value, keyUsing, valueUsing));
-  }
-
-  @override
-  void encodeNull() {
-    _value.add(null);
-  }
-
-  @override
-  void encodeNum(num value) {
+  void encodeIntOrNull(int? value) {
     _value.add(value);
   }
 
   @override
-  void encodeObject<T>(T value, {required Encodable<T> using}) {
-    using.encode(value, this);
-  }
-
-  @override
-  void encodeString(String value) {
+  void encodeDouble(double value) {
     _value.add(value);
-  }
-
-  @override
-  void end() {
-    // Do nothing
-  }
-
-  @override
-  void encodeCustom<T>(T value) {
-    _value.add(_encodeCustom<T>(value));
-  }
-
-  @override
-  void encodeDynamic(dynamic value) {
-    _value.add(value);
-  }
-
-  @override
-  void encodeBoolOrNull(bool? value) {
-    _value.add(value);
-  }
-
-  @override
-  void encodeCustomOrNull<T>(T? value) {
-    if (value == null) {
-      _value.add(null);
-      return;
-    }
-    _value.add(_encodeCustom<T>(value));
   }
 
   @override
@@ -976,8 +785,58 @@ class StandardIteratedEncoder extends _StandardEncoder implements IteratedEncode
   }
 
   @override
-  void encodeIntOrNull(int? value) {
+  void encodeNum(num value) {
     _value.add(value);
+  }
+
+  @override
+  void encodeNumOrNull(num? value) {
+    _value.add(value);
+  }
+
+  @override
+  void encodeString(String value) {
+    _value.add(value);
+  }
+
+  @override
+  void encodeStringOrNull(String? value) {
+    _value.add(value);
+  }
+
+  @override
+  void encodeNull() {
+    _value.add(null);
+  }
+
+  @override
+  void encodeObject<T>(T value, {Encodable<T>? using}) {
+    if (using != null) {
+      using.encode(value, this);
+    } else if (value is SelfEncodable) {
+      value.encode(this);
+    } else {
+      final delegate = _customTypes.whereType<CustomTypeDelegate<T>>().firstOrNull;
+      if (delegate != null) {
+        delegate.encode(value, this);
+      } else {
+        _value.add(value);
+      }
+    }
+  }
+
+  @override
+  void encodeObjectOrNull<T>(T? value, {Encodable<T>? using}) {
+    if (value == null) {
+      _value.add(null);
+      return;
+    }
+    encodeObject(value, using: using);
+  }
+
+  @override
+  void encodeIterable<E>(Iterable<E> value, {Encodable<E>? using}) {
+    _value.add(_encodeIterable(value, using));
   }
 
   @override
@@ -990,6 +849,11 @@ class StandardIteratedEncoder extends _StandardEncoder implements IteratedEncode
   }
 
   @override
+  void encodeMap<K, V>(Map<K, V> value, {Encodable<K>? keyUsing, Encodable<V>? valueUsing}) {
+    _value.add(_encodeMap(value, keyUsing, valueUsing));
+  }
+
+  @override
   void encodeMapOrNull<K, V>(Map<K, V>? value, {Encodable<K>? keyUsing, Encodable<V>? valueUsing}) {
     if (value == null) {
       _value.add(null);
@@ -999,22 +863,22 @@ class StandardIteratedEncoder extends _StandardEncoder implements IteratedEncode
   }
 
   @override
-  void encodeNumOrNull(num? value) {
-    _value.add(value);
+  IteratedEncoder encodeIterated() {
+    final list = <dynamic>[];
+    _value.add(list);
+    return StandardIteratedEncoder._(list, _isHumanReadable, _customTypes);
   }
 
   @override
-  void encodeObjectOrNull<T>(T? value, {required Encodable<T> using}) {
-    if (value == null) {
-      _value.add(null);
-      return;
-    }
-    using.encode(value, this);
+  KeyedEncoder encodeKeyed() {
+    final map = <String, dynamic>{};
+    _value.add(map);
+    return StandardKeyedEncoder._(map, _isHumanReadable, _customTypes);
   }
 
   @override
-  void encodeStringOrNull(String? value) {
-    _value.add(value);
+  void end() {
+    // Do nothing
   }
 }
 
@@ -1029,12 +893,17 @@ class StandardKeyedEncoder extends _StandardEncoder implements KeyedEncoder {
   }
 
   @override
-  IteratedEncoder encodeIterated(String key, {int? id}) {
-    return StandardIteratedEncoder._(_value[key] = <dynamic>[], _isHumanReadable, _customTypes);
+  void encodeBoolOrNull(String key, bool? value, {int? id}) {
+    _value[key] = value;
   }
 
   @override
   void encodeDouble(String key, double value, {int? id}) {
+    _value[key] = value;
+  }
+
+  @override
+  void encodeDoubleOrNull(String key, double? value, {int? id}) {
     _value[key] = value;
   }
 
@@ -1044,27 +913,8 @@ class StandardKeyedEncoder extends _StandardEncoder implements KeyedEncoder {
   }
 
   @override
-  void encodeIterable<E>(String key, Iterable<E> value, {int? id, Encodable<E>? using}) {
-    if (using == null) {
-      _value[key] = value;
-      return;
-    }
-    _value[key] = [for (final e in value) _encode(e, using)];
-  }
-
-  @override
-  KeyedEncoder encodeKeyed(String key, {int? id}) {
-    return StandardKeyedEncoder._(_value[key] = <String, dynamic>{}, _isHumanReadable, _customTypes);
-  }
-
-  @override
-  void encodeMap<K, V>(String key, Map<K, V> value, {int? id, Encodable<K>? keyUsing, Encodable<V>? valueUsing}) {
-    _value[key] = _encodeMap(value, keyUsing, valueUsing);
-  }
-
-  @override
-  void encodeNull(String key, {int? id}) {
-    _value[key] = null;
+  void encodeIntOrNull(String key, int? value, {int? id}) {
+    _value[key] = value;
   }
 
   @override
@@ -1073,8 +923,8 @@ class StandardKeyedEncoder extends _StandardEncoder implements KeyedEncoder {
   }
 
   @override
-  void encodeObject<T>(String key, T value, {int? id, required Encodable<T> using}) {
-    _value[key] = _encode(value, using);
+  void encodeNumOrNull(String key, num? value, {int? id}) {
+    _value[key] = value;
   }
 
   @override
@@ -1083,42 +933,32 @@ class StandardKeyedEncoder extends _StandardEncoder implements KeyedEncoder {
   }
 
   @override
-  void end() {
-    // Do nothing
-  }
-
-  @override
-  void encodeCustom<T>(String key, T value, {int? id}) {
-    _value[key] = _encodeCustom(value);
-  }
-
-  @override
-  void encodeDynamic(String key, Object? value, {int? id}) {
+  void encodeStringOrNull(String key, String? value, {int? id}) {
     _value[key] = value;
   }
 
   @override
-  void encodeBoolOrNull(String key, bool? value, {int? id}) {
-    _value[key] = value;
+  void encodeNull(String key, {int? id}) {
+    _value[key] = null;
   }
 
   @override
-  void encodeCustomOrNull<T>(String key, T? value, {int? id}) {
+  void encodeObject<T>(String key, T value, {int? id, Encodable<T>? using}) {
+    _value[key] = _encode(value, using);
+  }
+
+  @override
+  void encodeObjectOrNull<T>(String key, T? value, {int? id, Encodable<T>? using}) {
     if (value == null) {
       _value[key] = null;
       return;
     }
-    _value[key] = _encodeCustom(value);
+    _value[key] = _encode(value, using);
   }
 
   @override
-  void encodeDoubleOrNull(String key, double? value, {int? id}) {
-    _value[key] = value;
-  }
-
-  @override
-  void encodeIntOrNull(String key, int? value, {int? id}) {
-    _value[key] = value;
+  void encodeIterable<E>(String key, Iterable<E> value, {int? id, Encodable<E>? using}) {
+    _value[key] = _encodeIterable(value, using);
   }
 
   @override
@@ -1128,6 +968,11 @@ class StandardKeyedEncoder extends _StandardEncoder implements KeyedEncoder {
       return;
     }
     encodeIterable(key, value, id: id, using: using);
+  }
+
+  @override
+  void encodeMap<K, V>(String key, Map<K, V> value, {int? id, Encodable<K>? keyUsing, Encodable<V>? valueUsing}) {
+    _value[key] = _encodeMap(value, keyUsing, valueUsing);
   }
 
   @override
@@ -1141,21 +986,17 @@ class StandardKeyedEncoder extends _StandardEncoder implements KeyedEncoder {
   }
 
   @override
-  void encodeNumOrNull(String key, num? value, {int? id}) {
-    _value[key] = value;
+  IteratedEncoder encodeIterated(String key, {int? id}) {
+    return StandardIteratedEncoder._(_value[key] = <dynamic>[], _isHumanReadable, _customTypes);
   }
 
   @override
-  void encodeObjectOrNull<T>(String key, T? value, {int? id, required Encodable<T> using}) {
-    if (value == null) {
-      _value[key] = null;
-      return;
-    }
-    _value[key] = _encode(value, using);
+  KeyedEncoder encodeKeyed(String key, {int? id}) {
+    return StandardKeyedEncoder._(_value[key] = <String, dynamic>{}, _isHumanReadable, _customTypes);
   }
 
   @override
-  void encodeStringOrNull(String key, String? value, {int? id}) {
-    _value[key] = value;
+  void end() {
+    // Do nothing
   }
 }

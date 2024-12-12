@@ -32,7 +32,7 @@ class DateTimeCodable implements Codable<DateTime> {
     final decodingType = decoder.whatsNext();
 
     final value = switch (decodingType) {
-      DecodingType<DateTime>() => decoder.decodeCustom<DateTime>(),
+      DecodingType<DateTime>() => decoder.decodeObject<DateTime>(),
       _ => switch (preferredFormat) {
           DateTimeFormat.auto => switch (decoder.whatsNext()) {
               DecodingType.string => DateTime.parse(decoder.decodeString()),
@@ -57,7 +57,7 @@ class DateTimeCodable implements Codable<DateTime> {
       value = value.toUtc();
     }
     if (encoder.canEncodeCustom<DateTime>()) {
-      encoder.encodeCustom<DateTime>(value);
+      encoder.encodeObject<DateTime>(value);
     } else {
       switch (preferredFormat) {
         case DateTimeFormat.auto:

@@ -65,11 +65,6 @@ abstract interface class Decoder {
   /// implementation must try the appropriate decoding method based on the expected type.
   DecodingType whatsNext();
 
-  /// Decodes the data as a dynamic value.
-  ///
-  /// Non-self-describing formats may not support this method.
-  dynamic decodeDynamic();
-
   /// Decodes the data as a boolean value.
   bool decodeBool();
 
@@ -100,6 +95,23 @@ abstract interface class Decoder {
   /// Decodes the data as a nullable string value.
   String? decodeStringOrNull();
 
+  /// Checks if the data is null.
+  bool decodeIsNull();
+
+  /// Decodes the data as an object of type [T].
+  ///
+  /// This forwards the decoding to the provided [Decodable] implementation.
+  /// Otherwise tries to decode the data to a supported primitive type [T].
+  /// 
+  /// This should only be called if the format returned a `DecodingType<T>` from [whatsNext] or
+  /// is otherwise known to support [T] as a custom type.
+  T decodeObject<T>({Decodable<T>? using});
+
+  /// Decodes the data as a nullable object of type [T].
+  ///
+  /// When the data is not null behaves like [decodeObject].
+  T? decodeObjectOrNull<T>({Decodable<T>?using});
+
   /// Decodes the data as a list of elements.
   ///
   /// Optionally takes a [Decodable] to decode the elements of the list.
@@ -120,18 +132,6 @@ abstract interface class Decoder {
   /// Optionally takes [Decodable]s to decode the keys and values of the map.
   Map<K, V>? decodeMapOrNull<K, V>({Decodable<K>? keyUsing, Decodable<V>? valueUsing});
 
-  /// Decodes the data as a custom value of type [T].
-  ///
-  /// This should only be called if the format returned a `DecodingType<T>` from [whatsNext] or
-  /// is otherwise known to support [T] as a custom type.
-  T decodeCustom<T>();
-
-  /// Decodes the data as a nullable custom value of type [T].
-  ///
-  /// This should only be called if the format returned a `DecodingType<T>` from [whatsNext] or
-  /// is otherwise known to support [T] as a custom type.
-  T? decodeCustomOrNull<T>();
-
   /// Decodes the data as an iterated collection of nested data.
   IteratedDecoder decodeIterated();
 
@@ -142,19 +142,6 @@ abstract interface class Decoder {
   /// Decodes the data as a collection of key-value pairs.
   /// The values are accessed and decoded based on the provided key.
   MappedDecoder decodeMapped();
-
-  /// Decodes the data as an object of type [T].
-  ///
-  /// This forwards the decoding to the provided [Decodable] implementation.
-  T decodeObject<T>({required Decodable<T> using});
-
-  /// Decodes the data as a nullable object of type [T].
-  ///
-  /// When the data is not null, this forwards the decoding to the provided [Decodable] implementation.
-  T? decodeObjectOrNull<T>({required Decodable<T> using});
-
-  /// Checks if the data is null.
-  bool decodeIsNull();
 
   /// Whether a [Decodable] implementation should expect to decode their human-readable form.
   ///
@@ -322,11 +309,6 @@ abstract class MappedDecoder {
   /// implementation must try the appropriate decoding method based on the expected type.
   DecodingType whatsNext(String key, {int? id});
 
-  /// Decodes the data for the given key or id as a dynamic value.
-  ///
-  /// Non-self-describing formats may not support this method.
-  dynamic decodeDynamic(String key, {int? id});
-
   /// Decodes the data for the given key or id as a boolean value.
   bool decodeBool(String key, {int? id});
 
@@ -357,6 +339,20 @@ abstract class MappedDecoder {
   /// Decodes the data for the given key or id as a nullable string value.
   String? decodeStringOrNull(String key, {int? id});
 
+  /// Checks if the data for the given key or id is null.
+  bool decodeIsNull(String key, {int? id});
+
+  /// Decodes the data for the given key or id as an object of type [T].
+  ///
+  /// This forwards the decoding to the provided [Decodable] implementation.
+  /// Otherwise tries to decode the data to a supported primitive type [T].
+  T decodeObject<T>(String key, {int? id, Decodable<T>? using});
+
+  /// Decodes the data for the given key or id as a nullable object of type [T].
+  ///
+  /// When the data is not null, this behaves like [decodeObject].
+  T? decodeObjectOrNull<T>(String key, {int? id, Decodable<T>? using});
+
   /// Decodes the data for the given key or id as a list of elements.
   ///
   /// Optionally takes a [Decodable] to decode the elements of the list.
@@ -377,18 +373,6 @@ abstract class MappedDecoder {
   /// Optionally takes [Decodable]s to decode the keys and values of the map.
   Map<K, V>? decodeMapOrNull<K, V>(String key, {int? id, Decodable<K>? keyUsing, Decodable<V>? valueUsing});
 
-  /// Decodes the data for the given key or id as a custom value of type [T].
-  ///
-  /// This should only be called if the format is known to support [T] as a custom type or
-  /// returned a `DecodingType<T>` from [whatsNext].
-  T decodeCustom<T>(String key, {int? id});
-
-  /// Decodes the data for the given key or id as a nullable custom value of type [T].
-  ///
-  /// This should only be called if the format is known to support [T] as a custom type or
-  /// returned a `DecodingType<T>` from [whatsNext].
-  T? decodeCustomOrNull<T>(String key, {int? id});
-
   /// Decodes the data for the given key or id as an iterated collection of nested data.
   IteratedDecoder decodeIterated(String key, {int? id});
 
@@ -397,19 +381,6 @@ abstract class MappedDecoder {
 
   /// Decodes the data for the given key or id as a direct-access collection of key-value pairs of nested data.
   MappedDecoder decodeMapped(String key, {int? id});
-
-  /// Decodes the data for the given key or id as an object of type [T].
-  ///
-  /// This forwards the decoding to the provided [Decodable] implementation.
-  T decodeObject<T>(String key, {int? id, required Decodable<T> using});
-
-  /// Decodes the data for the given key or id as a nullable object of type [T].
-  ///
-  /// When the data is not null, this forwards the decoding to the provided [Decodable] implementation.
-  T? decodeObjectOrNull<T>(String key, {int? id, required Decodable<T> using});
-
-  /// Checks if the data for the given key or id is null.
-  bool decodeIsNull(String key, {int? id});
 
   /// Whether a [Decodable] implementation should expect to decode their human-readable form.
   ///

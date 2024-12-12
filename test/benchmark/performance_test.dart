@@ -23,39 +23,43 @@ final personBenchJsonBytes = utf8.encode(personBenchJson);
 void main() {
   Person p = PersonRaw.fromMapRaw(personBenchData);
 
-  group('benchmark', () {
-    compare(
-      'MAP DECODING',
+  group('benchmark', tags: 'benchmark', () {
+   compare(
+      'STANDARD DECODING (Map -> Person)',
       self: () => p = Person.codable.fromMap(personBenchData),
       other: () => p = PersonRaw.fromMapRaw(personBenchData),
     );
     compare(
-      'JSON STRING DECODING',
-      self: () => p = Person.codable.fromJson(personBenchJson),
-      other: () => p = PersonRaw.fromJsonRaw(personBenchJson),
-    );
-    compare(
-      'JSON BYTE DECODING',
-      self: () => p = Person.codable.fromJsonBytes(personBenchJsonBytes),
-      other: () => p = PersonRaw.fromJsonBytesRaw(personBenchJsonBytes),
+      'STANDARD ENCODING (Person -> Map)',
+      self: () => p.toMap(),
+      other: () => p.toMapRaw(),
     );
 
     print('');
 
     compare(
-      'MAP ENCODING',
-      self: () => p.toMap(),
-      other: () => p.toMapRaw(),
+      'JSON STRING DECODING (String -> Person)',
+      self: () => p = Person.codable.fromJson(personBenchJson),
+      other: () => p = PersonRaw.fromJsonRaw(personBenchJson),
     );
     compare(
-      'JSON STRING ENCODING',
+      'JSON STRING ENCODING (Person -> String)',
       self: () => p.toJson(),
       other: () => p.toJsonRaw(),
     );
+
+    print('');
+
     compare(
-      'JSON BYTE ENCODING',
+      'JSON BYTE DECODING (List<int> -> Person)',
+      self: () => p = Person.codable.fromJsonBytes(personBenchJsonBytes),
+      other: () => p = PersonRaw.fromJsonBytesRaw(personBenchJsonBytes),
+    );
+    compare(
+      'JSON BYTE ENCODING (Person -> List<int>)',
       self: () => p.toJsonBytes(),
       other: () => p.toJsonBytesRaw(),
     );
+
   });
 }

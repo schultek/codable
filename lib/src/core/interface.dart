@@ -42,6 +42,9 @@ abstract interface class SelfEncodable {
   /// The implementation should use one of the typed [Encoder]s `.encode...()` methods to encode the value.
   /// It is expected to call exactly one of the encoding methods a single time. Never more or less.
   void encode(Encoder encoder);
+
+  /// Creates a [SelfEncodable] from a handler function.
+  factory SelfEncodable.fromHandler(void Function(Encoder encoder) encode) => _SelfEncodableFromHandler(encode);
 }
 
 /// An object that can encode a value of type [T] to various data formats.
@@ -90,26 +93,8 @@ abstract interface class Encodable<T> {
   /// It is expected to call exactly one of the encoding methods a single time. Never more or less.
   void encode(T value, Encoder encoder);
 
-  /// A default [Encodable] implementation for [SelfEncodable] types.
-  ///
-  /// This should be used where an [Encodable] object is expected and the value is an [SelfEncodable].
-  ///
-  /// ```dart
-  /// final Person person = ...;
-  /// final Encoder encoder = ...;
-  ///
-  /// encoder.encodeObject<Person>(person, using: Encodable.self());
-  /// ```
-  static Encodable<T> self<T extends SelfEncodable>() => _SelfEncodable<T>();
-}
-
-class _SelfEncodable<T extends SelfEncodable> implements Encodable<T> {
-  const _SelfEncodable();
-
-  @override
-  void encode(T value, Encoder encoder) {
-    value.encode(encoder);
-  }
+  /// Creates an [Encodable] from a handler function.
+  factory Encodable.fromHandler(void Function(T value, Encoder encoder) encode) => _EncodableFromHandler(encode);
 }
 
 /// An object that can decode a value of type [T] from various data formats.
@@ -155,6 +140,9 @@ abstract interface class Decodable<T> {
   /// Then it should use one of the [Decoder]s `.decode...()` methods to decode into its target type.
   /// If the returned [DecodingType] is not supported, the implementation can use [Decoder.expect] to throw a detailed error.
   T decode(Decoder decoder);
+
+  /// Creates a [Decodable] from a handler function.
+  factory Decodable.fromHandler(T Function(Decoder decoder) decode) => _DecodableFromHandler(decode);
 }
 
 /// An object that can both encode and decode a value of type [T] to/from various data formats.
@@ -202,6 +190,13 @@ abstract interface class Decodable<T> {
 /// - [Decodable] for decoding values of some type from various data formats.
 abstract class Codable<T> implements Encodable<T>, Decodable<T> {
   const Codable();
+
+  /// Creates a [Codable] from a pair of handler functions.
+  factory Codable.fromHandlers({
+    required T Function(Decoder decoder) decode,
+    required void Function(T value, Encoder encoder) encode,
+  }) =>
+      _CodableFromHandlers(decode, encode);
 }
 
 /// A default [Codable] implementation for [SelfEncodable] types.
@@ -218,6 +213,66 @@ abstract class Codable<T> implements Encodable<T>, Decodable<T> {
 ///     /* ... */
 ///   }
 /// }
-abstract class SelfCodable<T extends SelfEncodable> extends _SelfEncodable<T> implements Codable<T> {
+abstract class SelfCodable<T extends SelfEncodable> implements Codable<T> {
   const SelfCodable();
+
+  @override
+  void encode(T value, Encoder encoder) {
+    value.encode(encoder);
+  }
+
+  /// Creates a [SelfCodable] from a handler function.
+  factory SelfCodable.fromHandler(T Function(Decoder decoder) decode) => _SelfCodableFromHandler(decode);
+}
+
+/// ========================
+/// === Internal Classes ===
+/// ========================
+
+final class _SelfEncodableFromHandler implements SelfEncodable {
+  const _SelfEncodableFromHandler(this._encode);
+
+  final void Function(Encoder encoder) _encode;
+
+  @override
+  void encode(Encoder encoder) => _encode(encoder);
+}
+
+final class _EncodableFromHandler<T> implements Encodable<T> {
+  const _EncodableFromHandler(this._encode);
+
+  final void Function(T value, Encoder encoder) _encode;
+
+  @override
+  void encode(T value, Encoder encoder) => _encode(value, encoder);
+}
+
+final class _DecodableFromHandler<T> implements Decodable<T> {
+  const _DecodableFromHandler(this._decode);
+
+  final T Function(Decoder decoder) _decode;
+
+  @override
+  T decode(Decoder decoder) => _decode(decoder);
+}
+
+final class _CodableFromHandlers<T> implements Codable<T> {
+  const _CodableFromHandlers(this._decode, this._encode);
+
+  final T Function(Decoder decoder) _decode;
+  final void Function(T value, Encoder encoder) _encode;
+
+  @override
+  T decode(Decoder decoder) => _decode(decoder);
+  @override
+  void encode(T value, Encoder encoder) => _encode(value, encoder);
+}
+
+final class _SelfCodableFromHandler<T extends SelfEncodable> extends SelfCodable<T> {
+  const _SelfCodableFromHandler(this._decode);
+
+  final T Function(Decoder decoder) _decode;
+
+  @override
+  T decode(Decoder decoder) => _decode(decoder);
 }

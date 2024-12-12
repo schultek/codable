@@ -1,6 +1,6 @@
 import 'package:codable/core.dart';
 
-import 'wrapped.dart';
+import 'delegate.dart';
 
 extension CodableHookExtension<T> on Codable<T> {
   /// Returns a [Codable] that applies the provided [Hook] when encoding and decoding [T].
