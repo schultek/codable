@@ -510,7 +510,7 @@ class DateTimeCodable implements Codable<DateTime> {
   /* ... */
 
   @override
-  void encode(DateTime value, Encoder encoer) {
+  void encode(DateTime value, Encoder encoder) {
     if (encoder.canEncodeCustom<DateTime>()) {
       encoder.encodeObject<DateTime>(value);
     } else {
@@ -538,7 +538,7 @@ class DateTimeCodable implements Codable<DateTime> {
   /* ... */
 
   @override
-  void encode(DateTime value, Encoder encoer) {
+  void encode(DateTime value, Encoder encoder) {
     if (encoder.isHumanReadable()) {
       encoder.encodeString(value.toIso8601String());
     } else {
