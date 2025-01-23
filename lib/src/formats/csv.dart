@@ -7,6 +7,9 @@
 /// of models, since all CSV data consists of a number of rows.
 library csv;
 
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:codable/core.dart';
 import 'package:codable/extended.dart';
 
@@ -15,12 +18,20 @@ extension CsvDecodable<T> on Decodable<T> {
   List<T> fromCsv(String csv) {
     return CsvDecoder.decode(csv, this);
   }
+
+  List<T> fromCsvBytes(Uint8List bytes) {
+    return CsvDecoder.decodeBytes(bytes, this);
+  }
 }
 
 extension CsvEncodable<T> on Encodable<T> {
   /// Encodes a list of objects into a CSV string.
   String toCsv(Iterable<T> value) {
     return CsvEncoder.encode(value, using: this);
+  }
+
+  Uint8List toCsvBytes(Iterable<T> value) {
+    return CsvEncoder.encodeBytes(value, using: this);
   }
 }
 
@@ -48,6 +59,11 @@ class CsvDecoder with _CsvDecoder implements Decoder {
     return decoder.decodeRows(decodable);
   }
 
+  static List<T> decodeBytes<T>(Uint8List value, Decodable<T> decodable) {
+    final decoder = CsvDecoder._(Uint16List.view(value.buffer));
+    return decoder.decodeRows(decodable);
+  }
+
   @override
   final List<int> buffer;
   @override
@@ -66,7 +82,8 @@ class CsvDecoder with _CsvDecoder implements Decoder {
       } else if (_skipWhitespace()) {
         break;
       } else {
-        throw CodableException.unexpectedType(expected: ', or end of line', data: buffer, offset: _offset);
+        throw CodableException.unexpectedType(
+            expected: ', or end of line', data: buffer, offset: _offset);
       }
     }
   }
@@ -76,7 +93,8 @@ class CsvDecoder with _CsvDecoder implements Decoder {
 
     while (_offset < buffer.length) {
       if (buffer[_offset] != tokenLineFeed) {
-        throw CodableException.unexpectedType(expected: 'end of line', data: buffer, offset: _offset);
+        throw CodableException.unexpectedType(
+            expected: 'end of line', data: buffer, offset: _offset);
       }
       _offset++;
       if (_offset >= buffer.length) {
@@ -96,61 +114,71 @@ class CsvDecoder with _CsvDecoder implements Decoder {
   @override
   bool decodeBool() {
     throw CodableException.unsupportedMethod('CsvDecoder', 'decodeBool',
-        reason: 'Row-level decoding only supports decodeKeyed() and decodeMapped().');
+        reason:
+            'Row-level decoding only supports decodeKeyed() and decodeMapped().');
   }
 
   @override
   bool? decodeBoolOrNull() {
     throw CodableException.unsupportedMethod('CsvDecoder', 'decodeBoolOrNull',
-        reason: 'Row-level decoding only supports decodeKeyed() and decodeMapped().');
+        reason:
+            'Row-level decoding only supports decodeKeyed() and decodeMapped().');
   }
 
   @override
   int decodeInt() {
     throw CodableException.unsupportedMethod('CsvDecoder', 'decodeInt',
-        reason: 'Row-level decoding only supports decodeKeyed() and decodeMapped().');
+        reason:
+            'Row-level decoding only supports decodeKeyed() and decodeMapped().');
   }
 
   @override
   int? decodeIntOrNull() {
     throw CodableException.unsupportedMethod('CsvDecoder', 'decodeIntOrNull',
-        reason: 'Row-level decoding only supports decodeKeyed() and decodeMapped().');
+        reason:
+            'Row-level decoding only supports decodeKeyed() and decodeMapped().');
   }
 
   @override
   double decodeDouble() {
     throw CodableException.unsupportedMethod('CsvDecoder', 'decodeDouble',
-        reason: 'Row-level decoding only supports decodeKeyed() and decodeMapped().');
+        reason:
+            'Row-level decoding only supports decodeKeyed() and decodeMapped().');
   }
 
   @override
   double? decodeDoubleOrNull() {
     throw CodableException.unsupportedMethod('CsvDecoder', 'decodeDoubleOrNull',
-        reason: 'Row-level decoding only supports decodeKeyed() and decodeMapped().');
+        reason:
+            'Row-level decoding only supports decodeKeyed() and decodeMapped().');
   }
 
   @override
   num decodeNum() {
     throw CodableException.unsupportedMethod('CsvDecoder', 'decodeNum',
-        reason: 'Row-level decoding only supports decodeKeyed() and decodeMapped().');
+        reason:
+            'Row-level decoding only supports decodeKeyed() and decodeMapped().');
   }
 
   @override
   num? decodeNumOrNull() {
     throw CodableException.unsupportedMethod('CsvDecoder', 'decodeNumOrNull',
-        reason: 'Row-level decoding only supports decodeKeyed() and decodeMapped().');
+        reason:
+            'Row-level decoding only supports decodeKeyed() and decodeMapped().');
   }
 
   @override
   String decodeString() {
     throw CodableException.unsupportedMethod('CsvDecoder', 'decodeString',
-        reason: 'Row-level decoding only supports decodeKeyed() and decodeMapped().');
+        reason:
+            'Row-level decoding only supports decodeKeyed() and decodeMapped().');
   }
 
   @override
   String? decodeStringOrNull() {
     throw CodableException.unsupportedMethod('CsvDecoder', 'decodeStringOrNull',
-        reason: 'Row-level decoding only supports decodeKeyed() and decodeMapped().');
+        reason:
+            'Row-level decoding only supports decodeKeyed() and decodeMapped().');
   }
 
   @override
@@ -163,7 +191,8 @@ class CsvDecoder with _CsvDecoder implements Decoder {
     if (using != null) {
       return using.decode(this);
     } else {
-      throw CodableException.unexpectedType(expected: 'Decodable', actual: '$T');
+      throw CodableException.unexpectedType(
+          expected: 'Decodable', actual: '$T');
     }
   }
 
@@ -175,31 +204,38 @@ class CsvDecoder with _CsvDecoder implements Decoder {
   @override
   List<E> decodeList<E>({Decodable<E>? using}) {
     throw CodableException.unsupportedMethod('CsvDecoder', 'decodeList',
-        reason: 'Row-level decoding only supports decodeKeyed() and decodeMapped().');
+        reason:
+            'Row-level decoding only supports decodeKeyed() and decodeMapped().');
   }
 
   @override
   List<E>? decodeListOrNull<E>({Decodable<E>? using}) {
     throw CodableException.unsupportedMethod('CsvDecoder', 'decodeListOrNull',
-        reason: 'Row-level decoding only supports decodeKeyed() and decodeMapped().');
+        reason:
+            'Row-level decoding only supports decodeKeyed() and decodeMapped().');
   }
 
   @override
-  Map<K, V> decodeMap<K, V>({Decodable<K>? keyUsing, Decodable<V>? valueUsing}) {
+  Map<K, V> decodeMap<K, V>(
+      {Decodable<K>? keyUsing, Decodable<V>? valueUsing}) {
     throw CodableException.unsupportedMethod('CsvDecoder', 'decodeMap',
-        reason: 'Row-level decoding only supports decodeKeyed() and decodeMapped().');
+        reason:
+            'Row-level decoding only supports decodeKeyed() and decodeMapped().');
   }
 
   @override
-  Map<K, V>? decodeMapOrNull<K, V>({Decodable<K>? keyUsing, Decodable<V>? valueUsing}) {
+  Map<K, V>? decodeMapOrNull<K, V>(
+      {Decodable<K>? keyUsing, Decodable<V>? valueUsing}) {
     throw CodableException.unsupportedMethod('CsvDecoder', 'decodeMapOrNull',
-        reason: 'Row-level decoding only supports decodeKeyed() and decodeMapped().');
+        reason:
+            'Row-level decoding only supports decodeKeyed() and decodeMapped().');
   }
 
   @override
   IteratedDecoder decodeIterated() {
     throw CodableException.unsupportedMethod('CsvDecoder', 'decodeIterated',
-        reason: 'Row-level decoding only supports decodeKeyed() and decodeMapped().');
+        reason:
+            'Row-level decoding only supports decodeKeyed() and decodeMapped().');
   }
 
   @override
@@ -224,7 +260,8 @@ class CsvDecoder with _CsvDecoder implements Decoder {
 
   @override
   Never expect(String expect) {
-    throw CodableException.unexpectedType(expected: expect, data: buffer, offset: _offset);
+    throw CodableException.unexpectedType(
+        expected: expect, data: buffer, offset: _offset);
   }
 }
 
@@ -245,7 +282,8 @@ abstract mixin class _CsvDecoder {
 
   String _readQuotedString() {
     if (buffer[_offset] != tokenDoubleQuote) {
-      throw CodableException.unexpectedType(expected: '"', data: buffer, offset: _offset);
+      throw CodableException.unexpectedType(
+          expected: '"', data: buffer, offset: _offset);
     }
     final start = _offset + 1;
     var i = start;
@@ -397,25 +435,30 @@ class CsvKeyedDecoder implements KeyedDecoder {
 
   @override
   List<E>? decodeListOrNull<E>({Decodable<E>? using}) {
-    throw CodableException.unsupportedMethod('CsvKeyedDecoder', 'decodeListOrNull',
+    throw CodableException.unsupportedMethod(
+        'CsvKeyedDecoder', 'decodeListOrNull',
         reason: 'The csv format does not support nested lists.');
   }
 
   @override
-  Map<K, V> decodeMap<K, V>({Decodable<K>? keyUsing, Decodable<V>? valueUsing}) {
+  Map<K, V> decodeMap<K, V>(
+      {Decodable<K>? keyUsing, Decodable<V>? valueUsing}) {
     throw CodableException.unsupportedMethod('CsvKeyedDecoder', 'decodeMap',
         reason: 'The csv format does not support nested maps.');
   }
 
   @override
-  Map<K, V>? decodeMapOrNull<K, V>({Decodable<K>? keyUsing, Decodable<V>? valueUsing}) {
-    throw CodableException.unsupportedMethod('CsvKeyedDecoder', 'decodeMapOrNull',
+  Map<K, V>? decodeMapOrNull<K, V>(
+      {Decodable<K>? keyUsing, Decodable<V>? valueUsing}) {
+    throw CodableException.unsupportedMethod(
+        'CsvKeyedDecoder', 'decodeMapOrNull',
         reason: 'The csv format does not support nested maps.');
   }
 
   @override
   IteratedDecoder decodeIterated() {
-    throw CodableException.unsupportedMethod('CsvKeyedDecoder', 'decodeIterated',
+    throw CodableException.unsupportedMethod(
+        'CsvKeyedDecoder', 'decodeIterated',
         reason: 'The csv format does not support nested collections.');
   }
 
@@ -439,13 +482,17 @@ class CsvKeyedDecoder implements KeyedDecoder {
     _key++;
     if (_key >= _parent.keys.length) {
       if (_parent.buffer[_parent._offset] != tokenLineFeed) {
-        throw CodableException.unexpectedType(expected: 'end of line', data: _parent.buffer, offset: _parent._offset);
+        throw CodableException.unexpectedType(
+            expected: 'end of line',
+            data: _parent.buffer,
+            offset: _parent._offset);
       }
       return null;
     }
     if (_key > 0) {
       if (_parent.buffer[_parent._offset] != tokenComma) {
-        throw CodableException.unexpectedType(expected: ',', data: _parent.buffer, offset: _parent._offset);
+        throw CodableException.unexpectedType(
+            expected: ',', data: _parent.buffer, offset: _parent._offset);
       }
       _parent._offset++;
     }
@@ -497,82 +544,103 @@ class CsvKeyedDecoder implements KeyedDecoder {
 
   @override
   Never expect(String expected) {
-    throw CodableException.unexpectedType(expected: expected, data: _parent.buffer, offset: _parent._offset);
+    throw CodableException.unexpectedType(
+        expected: expected, data: _parent.buffer, offset: _parent._offset);
   }
 }
 
-class CsvEncoder implements Encoder {
-  CsvEncoder._();
+class CsvEncoder<S extends Sink<String>> implements Encoder {
+  CsvEncoder._(this.writer);
 
   static String encode<T>(Iterable<T> value, {Encodable<T>? using}) {
-    final encoder = CsvEncoder._();
+    final sink = _StringBufferSink();
+    final encoder = CsvEncoder._(sink);
     for (final e in value) {
       encoder.encodeObject(e, using: using);
     }
-    return '${encoder.keys.join(',')}\n${encoder.writer}';
+    return '${encoder.keys.join(',')}\n${sink.buffer}';
+  }
+
+  static Uint8List encodeBytes<T>(Iterable<T> value, {Encodable<T>? using}) {
+    final encoder = CsvEncoder._(_StringBytesSink());
+    for (final e in value) {
+      encoder.encodeObject(e, using: using);
+    }
+    // TODO: can we do a chunked encoding here? It is hard when
+    return utf8.encode('${encoder.keys.join(',')}\n${encoder.writer}');
   }
 
   final List<String> keys = [];
-  final StringBuffer writer = StringBuffer();
+  final S writer;
 
   @override
   void encodeBool(bool value) {
     throw CodableException.unsupportedMethod('CsvEncoder', 'encodeBool',
-        reason: 'Row-level encoding only supports encodeKeyed() and encodeMapped().');
+        reason:
+            'Row-level encoding only supports encodeKeyed() and encodeMapped().');
   }
 
   @override
   void encodeBoolOrNull(bool? value) {
     throw CodableException.unsupportedMethod('CsvEncoder', 'encodeBoolOrNull',
-        reason: 'Row-level encoding only supports encodeKeyed() and encodeMapped().');
+        reason:
+            'Row-level encoding only supports encodeKeyed() and encodeMapped().');
   }
 
   @override
   void encodeInt(int value) {
     throw CodableException.unsupportedMethod('CsvEncoder', 'encodeInt',
-        reason: 'Row-level encoding only supports encodeKeyed() and encodeMapped().');
+        reason:
+            'Row-level encoding only supports encodeKeyed() and encodeMapped().');
   }
 
   @override
   void encodeIntOrNull(int? value) {
     throw CodableException.unsupportedMethod('CsvEncoder', 'encodeIntOrNull',
-        reason: 'Row-level encoding only supports encodeKeyed() and encodeMapped().');
+        reason:
+            'Row-level encoding only supports encodeKeyed() and encodeMapped().');
   }
 
   @override
   void encodeDouble(double value) {
     throw CodableException.unsupportedMethod('CsvEncoder', 'encodeDouble',
-        reason: 'Row-level encoding only supports encodeKeyed() and encodeMapped().');
+        reason:
+            'Row-level encoding only supports encodeKeyed() and encodeMapped().');
   }
 
   @override
   void encodeDoubleOrNull(double? value) {
     throw CodableException.unsupportedMethod('CsvEncoder', 'encodeDoubleOrNull',
-        reason: 'Row-level encoding only supports encodeKeyed() and encodeMapped().');
+        reason:
+            'Row-level encoding only supports encodeKeyed() and encodeMapped().');
   }
 
   @override
   void encodeNum(num value) {
     throw CodableException.unsupportedMethod('CsvEncoder', 'encodeNum',
-        reason: 'Row-level encoding only supports encodeKeyed() and encodeMapped().');
+        reason:
+            'Row-level encoding only supports encodeKeyed() and encodeMapped().');
   }
 
   @override
   void encodeNumOrNull(num? value) {
     throw CodableException.unsupportedMethod('CsvEncoder', 'encodeNumOrNull',
-        reason: 'Row-level encoding only supports encodeKeyed() and encodeMapped().');
+        reason:
+            'Row-level encoding only supports encodeKeyed() and encodeMapped().');
   }
 
   @override
   void encodeString(String value) {
     throw CodableException.unsupportedMethod('CsvEncoder', 'encodeString',
-        reason: 'Row-level encoding only supports encodeKeyed() and encodeMapped().');
+        reason:
+            'Row-level encoding only supports encodeKeyed() and encodeMapped().');
   }
 
   @override
   void encodeStringOrNull(String? value) {
     throw CodableException.unsupportedMethod('CsvEncoder', 'encodeStringOrNull',
-        reason: 'Row-level encoding only supports encodeKeyed() and encodeMapped().');
+        reason:
+            'Row-level encoding only supports encodeKeyed() and encodeMapped().');
   }
 
   @override
@@ -590,7 +658,8 @@ class CsvEncoder implements Encoder {
     } else if (value is SelfEncodable) {
       value.encode(this);
     } else {
-      throw CodableException.unexpectedType(expected: 'Encodable or SelfEncodable', actual: '$T', data: value);
+      throw CodableException.unexpectedType(
+          expected: 'Encodable or SelfEncodable', actual: '$T', data: value);
     }
   }
 
@@ -603,31 +672,39 @@ class CsvEncoder implements Encoder {
   @override
   void encodeIterable<E>(Iterable<E> value, {Encodable<E>? using}) {
     throw CodableException.unsupportedMethod('CsvEncoder', 'encodeIterable',
-        reason: 'Row-level encoding only supports encodeKeyed() and encodeMapped().');
+        reason:
+            'Row-level encoding only supports encodeKeyed() and encodeMapped().');
   }
 
   @override
   void encodeIterableOrNull<E>(Iterable<E>? value, {Encodable<E>? using}) {
-    throw CodableException.unsupportedMethod('CsvEncoder', 'encodeIterableOrNull',
-        reason: 'Row-level encoding only supports encodeKeyed() and encodeMapped().');
+    throw CodableException.unsupportedMethod(
+        'CsvEncoder', 'encodeIterableOrNull',
+        reason:
+            'Row-level encoding only supports encodeKeyed() and encodeMapped().');
   }
 
   @override
-  void encodeMap<K, V>(Map<K, V> value, {Encodable<K>? keyUsing, Encodable<V>? valueUsing}) {
+  void encodeMap<K, V>(Map<K, V> value,
+      {Encodable<K>? keyUsing, Encodable<V>? valueUsing}) {
     throw CodableException.unsupportedMethod('CsvEncoder', 'encodeMap',
-        reason: 'Row-level encoding only supports encodeKeyed() and encodeMapped().');
+        reason:
+            'Row-level encoding only supports encodeKeyed() and encodeMapped().');
   }
 
   @override
-  void encodeMapOrNull<K, V>(Map<K, V>? value, {Encodable<K>? keyUsing, Encodable<V>? valueUsing}) {
+  void encodeMapOrNull<K, V>(Map<K, V>? value,
+      {Encodable<K>? keyUsing, Encodable<V>? valueUsing}) {
     throw CodableException.unsupportedMethod('CsvEncoder', 'encodeMapOrNull',
-        reason: 'Row-level encoding only supports encodeKeyed() and encodeMapped().');
+        reason:
+            'Row-level encoding only supports encodeKeyed() and encodeMapped().');
   }
 
   @override
   IteratedEncoder encodeIterated() {
     throw CodableException.unsupportedMethod('CsvEncoder', 'encodeIterated',
-        reason: 'Row-level encoding only supports encodeKeyed() and encodeMapped().');
+        reason:
+            'Row-level encoding only supports encodeKeyed() and encodeMapped().');
   }
 
   @override
@@ -644,14 +721,14 @@ class CsvEncoder implements Encoder {
 class CsvKeyedEncoder implements KeyedEncoder {
   CsvKeyedEncoder(this.writer, this.keys, [this._key = 0]);
 
-  final StringBuffer writer;
+  final Sink<String> writer;
   final List<String> keys;
   int _key;
 
   late final _child = CsvValueEncoder(writer);
 
   void _encodeKey(String k) {
-    if (_key > 0) writer.write(',');
+    if (_key > 0) writer.add(',');
 
     if (_key < keys.length) {
       assert(k == keys[_key]);
@@ -664,53 +741,53 @@ class CsvKeyedEncoder implements KeyedEncoder {
   @override
   void encodeBool(String key, bool value, {int? id}) {
     _encodeKey(key);
-    writer.write(value);
+    writer.add('$value');
   }
 
   @override
   void encodeBoolOrNull(String key, bool? value, {int? id}) {
     _encodeKey(key);
     if (value == null) return;
-    writer.write(value);
+    writer.add('$value');
   }
 
   @override
   void encodeInt(String key, int value, {int? id}) {
     _encodeKey(key);
-    writer.write(value);
+    writer.add('$value');
   }
 
   @override
   void encodeIntOrNull(String key, int? value, {int? id}) {
     _encodeKey(key);
     if (value == null) return;
-    writer.write(value);
+    writer.add('$value');
   }
 
   @override
   void encodeDouble(String key, double value, {int? id}) {
     _encodeKey(key);
-    writer.write(value);
+    writer.add('$value');
   }
 
   @override
   void encodeDoubleOrNull(String key, double? value, {int? id}) {
     _encodeKey(key);
     if (value == null) return;
-    writer.write(value);
+    writer.add('$value');
   }
 
   @override
   void encodeNum(String key, num value, {int? id}) {
     _encodeKey(key);
-    writer.write(value);
+    writer.add('$value');
   }
 
   @override
   void encodeNumOrNull(String key, num? value, {int? id}) {
     _encodeKey(key);
     if (value == null) return;
-    writer.write(value);
+    writer.add('$value');
   }
 
   @override
@@ -742,25 +819,31 @@ class CsvKeyedEncoder implements KeyedEncoder {
   }
 
   @override
-  void encodeObjectOrNull<T>(String key, T? value, {int? id, Encodable<T>? using}) {
+  void encodeObjectOrNull<T>(String key, T? value,
+      {int? id, Encodable<T>? using}) {
     _encodeKey(key);
     _child.encodeObjectOrNull(value, using: using);
   }
 
   @override
-  void encodeIterable<E>(String key, Iterable<E> value, {int? id, Encodable<E>? using}) {
-    throw CodableException.unsupportedMethod('CsvKeyedEncoder', 'encodeIterable',
+  void encodeIterable<E>(String key, Iterable<E> value,
+      {int? id, Encodable<E>? using}) {
+    throw CodableException.unsupportedMethod(
+        'CsvKeyedEncoder', 'encodeIterable',
         reason: 'The csv format does not support nested iterables.');
   }
 
   @override
-  void encodeIterableOrNull<E>(String key, Iterable<E>? value, {int? id, Encodable<E>? using}) {
-    throw CodableException.unsupportedMethod('CsvKeyedEncoder', 'encodeIterableOrNull',
+  void encodeIterableOrNull<E>(String key, Iterable<E>? value,
+      {int? id, Encodable<E>? using}) {
+    throw CodableException.unsupportedMethod(
+        'CsvKeyedEncoder', 'encodeIterableOrNull',
         reason: 'The csv format does not support nested iterables.');
   }
 
   @override
-  void encodeMap<K, V>(String key, Map<K, V> value, {int? id, Encodable<K>? keyUsing, Encodable<V>? valueUsing}) {
+  void encodeMap<K, V>(String key, Map<K, V> value,
+      {int? id, Encodable<K>? keyUsing, Encodable<V>? valueUsing}) {
     throw CodableException.unsupportedMethod('CsvKeyedEncoder', 'encodeMap',
         reason: 'The csv format does not support nested maps.');
   }
@@ -768,13 +851,15 @@ class CsvKeyedEncoder implements KeyedEncoder {
   @override
   void encodeMapOrNull<K, V>(String key, Map<K, V>? value,
       {int? id, Encodable<K>? keyUsing, Encodable<V>? valueUsing}) {
-    throw CodableException.unsupportedMethod('CsvKeyedEncoder', 'encodeMapOrNull',
+    throw CodableException.unsupportedMethod(
+        'CsvKeyedEncoder', 'encodeMapOrNull',
         reason: 'The csv format does not support nested maps.');
   }
 
   @override
   IteratedEncoder encodeIterated(String key, {int? id}) {
-    throw CodableException.unsupportedMethod('CsvKeyedEncoder', 'encodeIterated',
+    throw CodableException.unsupportedMethod(
+        'CsvKeyedEncoder', 'encodeIterated',
         reason: 'The csv format does not support nested collections.');
   }
 
@@ -791,65 +876,65 @@ class CsvKeyedEncoder implements KeyedEncoder {
 
   @override
   void end() {
-    writer.writeln();
+    writer.add('\n');
   }
 }
 
 class CsvValueEncoder implements Encoder {
   CsvValueEncoder(this.writer);
 
-  final StringBuffer writer;
+  final Sink<String> writer;
 
   @override
   void encodeBool(bool value) {
-    writer.write(value);
+    writer.add('$value');
   }
 
   @override
   void encodeBoolOrNull(bool? value) {
     if (value == null) return;
-    writer.write(value);
+    writer.add('$value');
   }
 
   @override
   void encodeInt(int value) {
-    writer.write(value);
+    writer.add('$value');
   }
 
   @override
   void encodeIntOrNull(int? value) {
     if (value == null) return;
-    writer.write(value);
+    writer.add('$value');
   }
 
   @override
   void encodeDouble(double value) {
-    writer.write(value);
+    writer.add('$value');
   }
 
   @override
   void encodeDoubleOrNull(double? value) {
     if (value == null) return;
-    writer.write(value);
+    writer.add('$value');
   }
 
   @override
   void encodeNum(num value) {
-    writer.write(value);
+    writer.add('$value');
   }
 
   @override
   void encodeNumOrNull(num? value) {
     if (value == null) return;
-    writer.write(value);
+    writer.add('$value');
   }
 
   @override
   void encodeString(String value) {
     if (value.contains(',')) {
-      writer.write('"$value"');
+      writer.add('"$value"');
     } else {
-      writer.write(value);
+      writer.add(value);
     }
   }
 
@@ -886,31 +971,37 @@ class CsvValueEncoder implements Encoder {
 
   @override
   void encodeIterable<E>(Iterable<E> value, {Encodable<E>? using}) {
-    throw CodableException.unsupportedMethod('CsvValueEncoder', 'encodeIterable',
+    throw CodableException.unsupportedMethod(
+        'CsvValueEncoder', 'encodeIterable',
         reason: 'The csv format does not support nested iterables.');
   }
 
   @override
   void encodeIterableOrNull<E>(Iterable<E>? value, {Encodable<E>? using}) {
-    throw CodableException.unsupportedMethod('CsvValueEncoder', 'encodeIterableOrNull',
+    throw CodableException.unsupportedMethod(
+        'CsvValueEncoder', 'encodeIterableOrNull',
         reason: 'The csv format does not support nested iterables.');
   }
 
   @override
-  void encodeMap<K, V>(Map<K, V> value, {Encodable<K>? keyUsing, Encodable<V>? valueUsing}) {
+  void encodeMap<K, V>(Map<K, V> value,
+      {Encodable<K>? keyUsing, Encodable<V>? valueUsing}) {
     throw CodableException.unsupportedMethod('CsvValueEncoder', 'encodeMap',
         reason: 'The csv format does not support nested maps.');
   }
 
   @override
-  void encodeMapOrNull<K, V>(Map<K, V>? value, {Encodable<K>? keyUsing, Encodable<V>? valueUsing}) {
-    throw CodableException.unsupportedMethod('CsvValueEncoder', 'encodeMapOrNull',
+  void encodeMapOrNull<K, V>(Map<K, V>? value,
+      {Encodable<K>? keyUsing, Encodable<V>? valueUsing}) {
+    throw CodableException.unsupportedMethod(
+        'CsvValueEncoder', 'encodeMapOrNull',
         reason: 'The csv format does not support nested maps.');
   }
 
   @override
   IteratedEncoder encodeIterated() {
-    throw CodableException.unsupportedMethod('CsvValueEncoder', 'encodeIterated',
+    throw CodableException.unsupportedMethod(
+        'CsvValueEncoder', 'encodeIterated',
         reason: 'The csv format does not support nested collections.');
   }
 
@@ -923,6 +1014,35 @@ class CsvValueEncoder implements Encoder {
   @override
   bool isHumanReadable() {
     return true;
+  }
+}
+
+class _StringBufferSink implements Sink<String> {
+  final buffer = StringBuffer();
+
+  @override
+  void add(String data) {
+    buffer.write(data);
+  }
+
+  @override
+  // TODO: Add a guard?
+  void close() {}
+}
+
+class _StringBytesSink implements Sink<String> {
+  final buffer = BytesBuilder(copy: false);
+  late final builder = utf8.encoder
+      .startChunkedConversion(ByteConversionSink.withCallback(buffer.add));
+
+  @override
+  void add(String data) {
+    builder.add(data);
+  }
+
+  @override
+  void close() {
+    builder.close();
   }
 }
 
