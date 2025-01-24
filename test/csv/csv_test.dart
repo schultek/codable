@@ -1,5 +1,4 @@
 import 'package:codable/common.dart';
-import 'package:codable/core.dart';
 import 'package:codable/csv.dart';
 import 'package:codable/json.dart';
 import 'package:test/test.dart';
