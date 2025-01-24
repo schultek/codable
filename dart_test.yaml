@@ -9,3 +9,5 @@ presets:
   benchmark:
     include_tags: benchmark
     concurrency: 1
+    compilers:
+      - exe
