@@ -101,7 +101,8 @@ void main() {
 
       test("encodes to json bytes", () {
         // Uses the json codec to encode the person to bytes.
-        final List<int> encoded = expectedPerson.toJsonBytes();
+        final List<int> encoded =
+            Person.codable.jsonCodec.encode(expectedPerson);
         expect(encoded, equals(personTestJsonBytes));
       });
 
