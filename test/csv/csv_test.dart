@@ -1,4 +1,5 @@
 import 'package:codable/common.dart';
+import 'package:codable/core.dart';
 import 'package:codable/csv.dart';
 import 'package:codable/json.dart';
 import 'package:test/test.dart';
@@ -38,6 +39,20 @@ void main() {
       final csv = measures2.toCsv();
 
       expect(csv, equals(measuresCsv));
+    });
+
+    group('codec', () {
+      test('decodes', () {
+        // Use the fromCsv extension method to decode the data.
+        List<Measures> measures = Measures.codable.csvCodec.decode(measuresCsv);
+        expect(measures, equals(measuresObjects));
+      });
+
+      test('encodes', () {
+        // Use the toCsv extension method to encode the data.
+        final encoded = Measures.codable.csvCodec.encode(measuresObjects);
+        expect(encoded, equals(measuresCsv));
+      });
     });
   });
 }

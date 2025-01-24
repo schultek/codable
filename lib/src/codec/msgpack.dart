@@ -18,3 +18,8 @@ class MsgPackCodableCodec<T, C extends Codable<T>> extends Codec<T, List<int>> {
   Converter<T, List<int>> get encoder => CallbackConverter(
       (input) => MsgPackEncoder.encode<T>(input, using: codable));
 }
+
+extension MsgPackCodec<T> on Codable<T> {
+  Codec<T, List<int>> get mgsPackCodec =>
+      MsgPackCodableCodec<T, Codable<T>>(this);
+}

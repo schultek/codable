@@ -18,3 +18,7 @@ class JsonCodableCodec<T, C extends Codable<T>> extends Codec<T, List<int>> {
   Converter<T, List<int>> get encoder => CallbackConverter(
       (input) => JsonEncoder.encode<T>(input, using: codable));
 }
+
+extension JsonCodec<T> on Codable<T> {
+  Codec<T, List<int>> get jsonCodec => JsonCodableCodec<T, Codable<T>>(this);
+}

@@ -42,3 +42,7 @@ class _CsvUtf8CodableCodec<T, C extends Codable<T>>
   Converter<List<T>, Uint8List> get encoder => CallbackConverter(
       (input) => CsvEncoder.encodeBytes<T>(input, using: codable));
 }
+
+extension CsvCodec<T> on Codable<T> {
+  Codec<List<T>, String> get csvCodec => CsvCodableCodec<T, Codable<T>>(this);
+}
