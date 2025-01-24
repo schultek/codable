@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:codable/common.dart';
 import 'package:codable/csv.dart';
 import 'package:codable/json.dart';
@@ -41,16 +43,35 @@ void main() {
     });
 
     group('codec', () {
-      test('decodes', () {
+      test('decodes string', () {
         // Use the fromCsv extension method to decode the data.
         List<Measures> measures = Measures.codable.csvCodec.decode(measuresCsv);
         expect(measures, equals(measuresObjects));
       });
 
-      test('encodes', () {
+      test('encodes string', () {
         // Use the toCsv extension method to encode the data.
         final encoded = Measures.codable.csvCodec.encode(measuresObjects);
         expect(encoded, equals(measuresCsv));
+      });
+
+      test('special cases fusing with utf8', () {
+        expect(Measures.codable.csvCodec.fuse(utf8).runtimeType.toString(),
+            contains('_CsvUtf8CodableCodec'));
+      });
+
+      test('decodes bytes fused', () {
+        // Use the csvCodec extension fused with the utf8 codec to decode bytes.
+        List<Measures> measures =
+            Measures.codable.csvCodec.fuse(utf8).decode(measuresCsvBytes);
+        expect(measures, equals(measuresObjects));
+      });
+
+      test('encodes bytes fused', () {
+        // Use the csvCodec extension fused with the utf8 codec to encode bytes.
+        final encoded =
+            Measures.codable.csvCodec.fuse(utf8).encode(measuresObjects);
+        expect(encoded, equals(measuresCsvBytes));
       });
     });
   });

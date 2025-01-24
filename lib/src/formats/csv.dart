@@ -60,7 +60,7 @@ class CsvDecoder with _CsvDecoder implements Decoder {
   }
 
   static List<T> decodeBytes<T>(Uint8List value, Decodable<T> decodable) {
-    final decoder = CsvDecoder._(Uint16List.view(value.buffer));
+    final decoder = CsvDecoder._(value);
     return decoder.decodeRows(decodable);
   }
 
@@ -558,16 +558,34 @@ class CsvEncoder<S extends Sink<String>> implements Encoder {
     for (final e in value) {
       encoder.encodeObject(e, using: using);
     }
+    sink.close();
     return '${encoder.keys.join(',')}\n${sink.buffer}';
   }
 
   static Uint8List encodeBytes<T>(Iterable<T> value, {Encodable<T>? using}) {
-    final encoder = CsvEncoder._(_StringBytesSink());
+    final sink = _StringBytesSink();
+    final encoder = CsvEncoder._(sink);
     for (final e in value) {
       encoder.encodeObject(e, using: using);
     }
-    // TODO: can we do a chunked encoding here? It is hard when
-    return utf8.encode('${encoder.keys.join(',')}\n${encoder.writer}');
+    sink.close();
+
+    // We don't know the keys ahead of time, nor even how much space to reserve
+    // for them, which forces an extra copy of the bytes here.
+    final builder = BytesBuilder(copy: false);
+    for (var i = 0; i < encoder.keys.length; i++) {
+      // TODO: We could encode this keys string as we go instead of collecting
+      // the list of keys, and encoding them at the end.
+      if (i != 0) {
+        builder.add(utf8.encode(','));
+      }
+      builder.add(utf8.encode(encoder.keys[i]));
+    }
+    builder
+      ..add(utf8.encode('\n'))
+      ..add(encoder.writer.buffer.takeBytes());
+
+    return builder.takeBytes();
   }
 
   final List<String> keys = [];
