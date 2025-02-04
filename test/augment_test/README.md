@@ -25,3 +25,12 @@ I have filed
 to detail the bug in the `augment` keyword
 
 
+#Files used for sdk bug report issues:
+----------------------------------------------------------
+test\augment_test\basic\model\superbasic_for_issue_bug_report.dart  
+stand alone code create for https://github.com/dart-lang/sdk/issues/60039
+
+
+test\augment_test\generics\basic\model\standalone_error.dart   
+Stand alone code created for https://github.com/dart-lang/sdk/issues/60040
+
