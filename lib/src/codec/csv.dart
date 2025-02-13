@@ -3,46 +3,63 @@ import 'dart:typed_data';
 
 import 'package:codable/core.dart';
 import 'package:codable/csv.dart';
+import 'package:codable/src/codec/codec.dart';
 
 import 'converter.dart';
 
-class CsvCodableCodec<T, C extends Codable<T>> extends Codec<List<T>, String> {
-  final C codable;
+const CsvCodec csv = CsvCodec();
 
-  CsvCodableCodec(this.codable);
-
-  @override
-  Converter<String, List<T>> get decoder =>
-      CallbackConverter((input) => CsvDecoder.decode(input, codable));
+class CsvCodec extends CodableBaseCodec<Object?, String> {
+  const CsvCodec();
 
   @override
-  Converter<List<T>, String> get encoder =>
-      CallbackConverter((input) => CsvEncoder.encode<T>(input, using: codable));
+  Object? performDecode(String value) {
+    return CsvDecoder.decode(value, const ObjectCodable());
+  }
 
   @override
-  Codec<List<T>, To> fuse<To>(Codec<String, To> other) {
+  String performEncode(Object? value) {
+    return CsvEncoder.encode(value, using: const ObjectCodable());
+  }
+
+  @override
+  Codec<T, String>? fuseCodable<T>(Codable<T> codable) {
+    return CsvCodableCodec<T>(codable);
+  }
+}
+
+class CsvCodableCodec<T> extends CodableCodec<T, String> {
+  const CsvCodableCodec(super.codable);
+
+  @override
+  T performDecode(String value) {
+    return CsvDecoder.decode(value, codable);
+  }
+
+  @override
+  String performEncode(T value) {
+    return CsvEncoder.encode(value, using: codable);
+  }
+
+  @override
+  Codec<T, To> fuse<To>(Codec<String, To> other) {
     if (other is Utf8Codec) {
-      return _CsvUtf8CodableCodec<T, Codable<T>>(codable) as Codec<List<T>, To>;
+      return _CsvUtf8CodableCodec<T>(codable) as Codec<T, To>;
     }
     return super.fuse<To>(other);
   }
 }
 
-class _CsvUtf8CodableCodec<T, C extends Codable<T>>
-    extends Codec<List<T>, Uint8List> {
-  final C codable;
-
-  _CsvUtf8CodableCodec(this.codable);
+class _CsvUtf8CodableCodec<T> extends CodableCodec<T, Uint8List> {
+  _CsvUtf8CodableCodec(super.codable);
 
   @override
-  Converter<Uint8List, List<T>> get decoder =>
-      CallbackConverter((input) => CsvDecoder.decodeBytes(input, codable));
-
+  T performDecode(Uint8List value) {
+    return CsvDecoder.decodeBytes(value, codable);
+  }
+  
   @override
-  Converter<List<T>, Uint8List> get encoder => CallbackConverter(
-      (input) => CsvEncoder.encodeBytes<T>(input, using: codable));
-}
-
-extension CsvCodec<T> on Codable<T> {
-  Codec<List<T>, String> get csvCodec => CsvCodableCodec<T, Codable<T>>(this);
+  Uint8List performEncode(T value) {
+    return CsvEncoder.encodeBytes(value, using: codable);
+  }
 }

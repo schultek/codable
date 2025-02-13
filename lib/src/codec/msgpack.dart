@@ -1,25 +1,45 @@
+
 import 'dart:convert';
 
-import 'package:codable/core.dart';
 import 'package:codable/msgpack.dart';
+import 'package:codable/src/core/interface.dart';
 
+import 'codec.dart';
 import 'converter.dart';
 
-class MsgPackCodableCodec<T, C extends Codable<T>> extends Codec<T, List<int>> {
-  final C codable;
+const MsgPackCodec msgPack = MsgPackCodec();
 
-  MsgPackCodableCodec(this.codable);
-
-  @override
-  Converter<List<int>, T> get decoder =>
-      CallbackConverter((input) => MsgPackDecoder.decode(input, codable));
+class MsgPackCodec extends CodableBaseCodec<Object?, List<int>> {
+  const MsgPackCodec();
 
   @override
-  Converter<T, List<int>> get encoder => CallbackConverter(
-      (input) => MsgPackEncoder.encode<T>(input, using: codable));
+  Object? performDecode(List<int> value) {
+    return MsgPackDecoder.decode(value, const ObjectCodable());
+  }
+
+  @override
+  List<int> performEncode(Object? value) {
+    return MsgPackEncoder.encode(value, using: const ObjectCodable());
+  }
+  
+  @override
+  Codec<T, List<int>>? fuseCodable<T>(Codable<T> codable) {
+    return MsgPackCodableCodec<T>(codable);
+  }
+
 }
 
-extension MsgPackCodec<T> on Codable<T> {
-  Codec<T, List<int>> get mgsPackCodec =>
-      MsgPackCodableCodec<T, Codable<T>>(this);
+class MsgPackCodableCodec<In> extends CodableCodec<In, List<int>> {
+ const MsgPackCodableCodec(super.codable);
+
+  @override
+  In performDecode(List<int> value) {
+    return MsgPackDecoder.decode(value, codable);
+  }
+
+  @override
+  List<int> performEncode(In value) {
+    return MsgPackEncoder.encode(value, using: codable);
+  }
+
 }

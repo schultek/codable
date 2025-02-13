@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:codable/common.dart';
 import 'package:codable/csv.dart';
 import 'package:codable/json.dart';
+import 'package:codable/standard.dart';
 import 'package:test/test.dart';
 
 import 'model/measures.dart';
@@ -45,32 +46,30 @@ void main() {
     group('codec', () {
       test('decodes string', () {
         // Use the fromCsv extension method to decode the data.
-        List<Measures> measures = Measures.codable.csvCodec.decode(measuresCsv);
+        List<Measures> measures = Measures.codable.list().codec.fuse(csv).decode(measuresCsv);
         expect(measures, equals(measuresObjects));
       });
 
       test('encodes string', () {
         // Use the toCsv extension method to encode the data.
-        final encoded = Measures.codable.csvCodec.encode(measuresObjects);
+        final encoded = Measures.codable.list().codec.fuse(csv).encode(measuresObjects);
         expect(encoded, equals(measuresCsv));
       });
 
       test('special cases fusing with utf8', () {
-        expect(Measures.codable.csvCodec.fuse(utf8).runtimeType.toString(),
+        expect(Measures.codable.list().codec.fuse(csv).fuse(utf8).runtimeType.toString(),
             contains('_CsvUtf8CodableCodec'));
       });
 
       test('decodes bytes fused', () {
         // Use the csvCodec extension fused with the utf8 codec to decode bytes.
-        List<Measures> measures =
-            Measures.codable.csvCodec.fuse(utf8).decode(measuresCsvBytes);
+        List<Measures> measures = Measures.codable.list().codec.fuse(csv).fuse(utf8).decode(measuresCsvBytes);
         expect(measures, equals(measuresObjects));
       });
 
       test('encodes bytes fused', () {
         // Use the csvCodec extension fused with the utf8 codec to encode bytes.
-        final encoded =
-            Measures.codable.csvCodec.fuse(utf8).encode(measuresObjects);
+        final encoded = Measures.codable.list().codec.fuse(csv).fuse(utf8).encode(measuresObjects);
         expect(encoded, equals(measuresCsvBytes));
       });
     });
