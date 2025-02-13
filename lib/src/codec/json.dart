@@ -9,12 +9,12 @@ class JsonCodableCodec extends CodableCodec<String> {
   const JsonCodableCodec();
 
   @override
-  T performDecode<T>(String value, Decodable<T> using) {
+  T performDecode<T>(String value, {required Decodable<T> using}) {
     return JsonDecoder.decode(utf8.encode(value), using);
   }
 
   @override
-  String performEncode<T>(T value, Encodable<T> using) {
+  String performEncode<T>(T value, {required Encodable<T> using}) {
     return utf8.decode(JsonEncoder.encode(value, using: using));
   }
 
@@ -32,12 +32,12 @@ class _JsonBytesCodableCodec extends CodableCodec<List<int>> {
   const _JsonBytesCodableCodec();
 
   @override
-  T performDecode<T>(List<int> value, Decodable<T> using) {
+  T performDecode<T>(List<int> value, {required Decodable<T> using}) {
     return JsonDecoder.decode(value, using);
   }
 
   @override
-  List<int> performEncode<T>(T value, Encodable<T> using) {
+  List<int> performEncode<T>(T value, {required Encodable<T> using}) {
     return JsonEncoder.encode(value, using: using);
   }
 }

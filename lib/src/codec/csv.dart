@@ -11,12 +11,12 @@ class CsvCodec extends CodableCodec<String> {
   const CsvCodec();
 
   @override
-  T performDecode<T>(String value, Decodable<T> using) {
-    return CsvDecoder.decode(value,using);
+  T performDecode<T>(String value, {required Decodable<T> using}) {
+    return CsvDecoder.decode(value, using);
   }
 
   @override
-  String performEncode<T>(T value, Encodable<T> using) {
+  String performEncode<T>(T value, {required Encodable<T> using}) {
     return CsvEncoder.encode(value, using: using);
   }
 
@@ -29,15 +29,14 @@ class CsvCodec extends CodableCodec<String> {
   }
 }
 
-
 class _CsvUtf8CodableCodec extends CodableCodec<Uint8List> {
   @override
-  T performDecode<T>(Uint8List value, Decodable<T> using) {
-    return CsvDecoder.decodeBytes(value,using);
+  T performDecode<T>(Uint8List value, {required Decodable<T> using}) {
+    return CsvDecoder.decodeBytes(value, using);
   }
 
   @override
-  Uint8List performEncode<T>(T value, Encodable<T> using) {
+  Uint8List performEncode<T>(T value, {required Encodable<T> using}) {
     return CsvEncoder.encodeBytes(value, using: using);
   }
 }

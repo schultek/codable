@@ -36,10 +36,13 @@ extension CsvEncodable<T> on Encodable<T> {
   }
 }
 
-extension CsvSelfEncodable<T extends SelfEncodable> on Iterable<T> {
-  /// Encodes a list of objects into a CSV string.
+extension CsvSelfEncodableSelf<T extends SelfEncodable> on T {
   String toCsv() {
     return CsvEncoder.encode(this);
+  }
+
+  List<int> toCsvBytes() {
+    return CsvEncoder.encodeBytes(this);
   }
 }
 

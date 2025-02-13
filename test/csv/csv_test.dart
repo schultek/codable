@@ -22,7 +22,7 @@ void main() {
 
     test('encodes', () {
       // Use the toCsv extension method to encode the data.
-      final encoded = measuresObjects.toCsv();
+      final encoded = measuresObjects.encode.toCsv();
       expect(encoded, equals(measuresCsv));
     });
 
@@ -38,7 +38,7 @@ void main() {
       // Use the fromJson extension method to decode the data from json.
       List<Measures> measures2 = Measures.codable.list().fromJson(json);
       // Use the toCsv extension method to encode the data to csv.
-      final csv = measures2.toCsv();
+      final csv = measures2.encode.toCsv();
 
       expect(csv, equals(measuresCsv));
     });
