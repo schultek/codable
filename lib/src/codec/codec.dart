@@ -3,39 +3,49 @@ import 'dart:convert';
 import 'package:codable/standard.dart';
 
 import '../../core.dart';
+import '../common/object.dart';
 import 'converter.dart';
 
 typedef DecodeCallback<T> = R Function<R>(T value, Decodable<R> using);
 typedef EncodeCallback<T> = T Function<R>(R value, Encodable<R> using);
 
-abstract class CodableBaseCodec<In extends Object?, Out> extends Codec<In, Out> with CodableCompatibleCodec<In, Out> {
-  const CodableBaseCodec();
+abstract class CodableCodec<Out> extends Codec<Object?, Out>
+    with CodableCompatibleCodec<Object?, Out>  {
+  const CodableCodec();
 
-  In performDecode(Out value);
-  Out performEncode(In value);
-
-  @override
-  Converter<Out, In> get decoder => CallbackConverter(performDecode);
+  T performDecode<T>(Out value, Decodable<T> using);
+  Out performEncode<T>(T value, Encodable<T> using);
 
   @override
-  Converter<In, Out> get encoder => CallbackConverter(performEncode);
+  Converter<Out, Object?> get decoder => CallbackConverter((v) => performDecode<Object?>(v, const ObjectCodable()));
+
+  @override
+  Converter<Object?, Out> get encoder => CallbackConverter((v) => performEncode<Object?>(v, const ObjectCodable()));
+
+  @override
+  Codec<T, Out>? fuseCodable<T>(Codable<T> codable) {
+    return _CodableCodec<T, Out>(this, codable);
+  }
 }
 
-abstract class CodableCodec<In, Out> extends Codec<In, Out> {
-  const CodableCodec(this.codable);
+class _CodableCodec<T, Out> extends Codec<T, Out> {
+  const _CodableCodec(this.codec, this.codable);
 
-  final Codable<In> codable;
-
-  In performDecode(Out value);
-  Out performEncode(In value);
+  final CodableCodec<Out> codec;
+  final Codable<T> codable;
 
   @override
-  Converter<Out, In> get decoder {
-    return CallbackConverter(performDecode);
-  }
+  Converter<Out, T> get decoder => CallbackConverter((v) => codec.performDecode<T>(v, codable));
 
   @override
-  Converter<In, Out> get encoder {
-    return CallbackConverter(performEncode);
+  Converter<T, Out> get encoder => CallbackConverter((v) => codec.performEncode<T>(v, codable));
+
+  @override
+  Codec<T, R> fuse<R>(Codec<Out, R> other) {
+    final fused = codec.fuse(other);
+    if (fused is CodableCodec<R>) {
+      return _CodableCodec<T, R>(fused, codable);
+    }
+    return super.fuse(other);
   }
 }

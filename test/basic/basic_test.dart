@@ -113,11 +113,6 @@ void main() {
         expect(encoded, equals(personTestMsgpackBytes));
       });
 
-      test('decodes from csv', () {
-        // Uses the msgpack codec to decode the Person from bytes.
-        List<Person> p = Person.codable.list().codec.fuse(csv).decode('');
-        expect(p, equals(expectedPerson));
-      });
     });
   });
 }

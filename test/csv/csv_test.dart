@@ -58,7 +58,7 @@ void main() {
 
       test('special cases fusing with utf8', () {
         expect(Measures.codable.list().codec.fuse(csv).fuse(utf8).runtimeType.toString(),
-            contains('_CsvUtf8CodableCodec'));
+            contains('_CodableCodec<List<Measures>, List<int>>'));
       });
 
       test('decodes bytes fused', () {

@@ -22,7 +22,7 @@ class StandardCodableCodec<T, C extends Codable<T>> extends Codec<T, Object?> {
   @override
   Codec<T, R> fuse<R>(Codec<Object?, R> other) {
     if (other is JsonCodec) {
-      return JsonCodableCodec<T>(codable) as Codec<T, R>;
+      return JsonCodableCodec().fuseCodable(codable) as Codec<T, R>;
     } else if (other is CodableCompatibleCodec<dynamic, R>) {
       return other.fuseCodable(codable) ?? super.fuse(other);
     } else {
