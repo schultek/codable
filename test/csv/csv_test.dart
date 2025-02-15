@@ -1,6 +1,9 @@
+import 'dart:convert';
+
 import 'package:codable/common.dart';
 import 'package:codable/csv.dart';
 import 'package:codable/json.dart';
+import 'package:codable/standard.dart';
 import 'package:test/test.dart';
 
 import 'model/measures.dart';
@@ -19,7 +22,7 @@ void main() {
 
     test('encodes', () {
       // Use the toCsv extension method to encode the data.
-      final encoded = measuresObjects.toCsv();
+      final encoded = measuresObjects.encode.toCsv();
       expect(encoded, equals(measuresCsv));
     });
 
@@ -35,9 +38,40 @@ void main() {
       // Use the fromJson extension method to decode the data from json.
       List<Measures> measures2 = Measures.codable.list().fromJson(json);
       // Use the toCsv extension method to encode the data to csv.
-      final csv = measures2.toCsv();
+      final csv = measures2.encode.toCsv();
 
       expect(csv, equals(measuresCsv));
+    });
+
+    group('codec', () {
+      test('decodes string', () {
+        // Use the fromCsv extension method to decode the data.
+        List<Measures> measures = Measures.codable.list().codec.fuse(csv).decode(measuresCsv);
+        expect(measures, equals(measuresObjects));
+      });
+
+      test('encodes string', () {
+        // Use the toCsv extension method to encode the data.
+        final encoded = Measures.codable.list().codec.fuse(csv).encode(measuresObjects);
+        expect(encoded, equals(measuresCsv));
+      });
+
+      test('special cases fusing with utf8', () {
+        expect(Measures.codable.list().codec.fuse(csv).fuse(utf8).runtimeType.toString(),
+            contains('_CodableCodec<List<Measures>, List<int>>'));
+      });
+
+      test('decodes bytes fused', () {
+        // Use the csvCodec extension fused with the utf8 codec to decode bytes.
+        List<Measures> measures = Measures.codable.list().codec.fuse(csv).fuse(utf8).decode(measuresCsvBytes);
+        expect(measures, equals(measuresObjects));
+      });
+
+      test('encodes bytes fused', () {
+        // Use the csvCodec extension fused with the utf8 codec to encode bytes.
+        final encoded = Measures.codable.list().codec.fuse(csv).fuse(utf8).encode(measuresObjects);
+        expect(encoded, equals(measuresCsvBytes));
+      });
     });
   });
 }

@@ -11,12 +11,18 @@ id,name,age,isActive,signupDate,website
 5,Chris Johnson,34,true,2019-03-10T00:00:00.000,https://chrisjohnson.net
 ''';
 
+final measuresCsvBytes = utf8.encode(measuresCsv);
+
 final measuresObjects = [
-  Measures('1', 'John Doe', 25, true, DateTime(2023, 6, 15), Uri.parse('https://johndoe.com')),
-  Measures('2', 'Jane Smith', 30, false, null, Uri.parse('https://janesmith.org')),
-  Measures('3', null, 45, true, DateTime(2021, 9, 12), Uri.parse('https://example.com')),
+  Measures('1', 'John Doe', 25, true, DateTime(2023, 6, 15),
+      Uri.parse('https://johndoe.com')),
+  Measures(
+      '2', 'Jane Smith', 30, false, null, Uri.parse('https://janesmith.org')),
+  Measures('3', null, 45, true, DateTime(2021, 9, 12),
+      Uri.parse('https://example.com')),
   Measures('4', 'Alex Brown', 29, false, DateTime(2020, 11, 23), null),
-  Measures('5', 'Chris Johnson', 34, true, DateTime(2019, 3, 10), Uri.parse('https://chrisjohnson.net')),
+  Measures('5', 'Chris Johnson', 34, true, DateTime(2019, 3, 10),
+      Uri.parse('https://chrisjohnson.net')),
 ];
 
 final measuresData = [
