@@ -1,11 +1,11 @@
 import 'dart:convert';
 
-import 'package:codable/common.dart';
-import 'package:codable/json.dart';
-import 'package:codable/src/codec/csv.dart';
-import 'package:codable/src/codec/msgpack.dart';
-import 'package:codable/src/formats/msgpack.dart';
-import 'package:codable/standard.dart';
+import 'package:codable_dart/common.dart';
+import 'package:codable_dart/json.dart';
+import 'package:codable_dart/src/codec/csv.dart';
+import 'package:codable_dart/src/codec/msgpack.dart';
+import 'package:codable_dart/src/formats/msgpack.dart';
+import 'package:codable_dart/standard.dart';
 import 'package:test/test.dart';
 
 import 'model/person.dart';

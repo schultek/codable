@@ -1,4 +1,4 @@
-import 'package:codable/standard.dart';
+import 'package:codable_dart/standard.dart';
 import 'package:test/test.dart';
 
 import 'model/material.dart';

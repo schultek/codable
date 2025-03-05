@@ -1,4 +1,4 @@
-import 'package:codable/core.dart';
+import 'package:codable_dart/core.dart';
 
 /// The format to encode and decode a [DateTime].
 enum DateTimeFormat {

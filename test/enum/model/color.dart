@@ -1,4 +1,4 @@
-import 'package:codable/core.dart';
+import 'package:codable_dart/core.dart';
 
 /// Enums can define static [Codable]s and implement [SelfEncodable] just like normal classes.
 enum Color implements SelfEncodable {

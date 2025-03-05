@@ -1,5 +1,5 @@
-import 'package:codable/core.dart';
-import 'package:codable/extended.dart';
+import 'package:codable_dart/core.dart';
+import 'package:codable_dart/extended.dart';
 
 extension StandardDecodable<T> on Decodable<T> {
   T fromValue(Object? value) {

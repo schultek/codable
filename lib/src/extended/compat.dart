@@ -1,4 +1,4 @@
-import 'package:codable/core.dart';
+import 'package:codable_dart/core.dart';
 
 class CompatMappedDecoder implements MappedDecoder {
   CompatMappedDecoder._(this.wrapped, this.decoders);

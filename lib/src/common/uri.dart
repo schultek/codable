@@ -1,4 +1,4 @@
-import 'package:codable/core.dart';
+import 'package:codable_dart/core.dart';
 
 /// A [Uri] codable that can encode and decode an uri as a string.
 class UriCodable implements Codable<Uri> {

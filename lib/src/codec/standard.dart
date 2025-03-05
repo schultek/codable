@@ -1,7 +1,7 @@
 import 'dart:convert';
 
-import 'package:codable/core.dart';
-import 'package:codable/standard.dart';
+import 'package:codable_dart/core.dart';
+import 'package:codable_dart/standard.dart';
 
 import '../../json.dart';
 import 'converter.dart';

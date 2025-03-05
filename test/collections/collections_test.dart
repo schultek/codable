@@ -1,6 +1,6 @@
-import 'package:codable/common.dart';
-import 'package:codable/core.dart';
-import 'package:codable/json.dart';
+import 'package:codable_dart/common.dart';
+import 'package:codable_dart/core.dart';
+import 'package:codable_dart/json.dart';
 import 'package:test/test.dart';
 
 import '../basic/model/person.dart';

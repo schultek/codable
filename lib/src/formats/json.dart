@@ -9,9 +9,9 @@ library json;
 
 import 'dart:convert';
 
-import 'package:codable/core.dart';
-import 'package:codable/extended.dart';
-import 'package:codable/standard.dart';
+import 'package:codable_dart/core.dart';
+import 'package:codable_dart/extended.dart';
+import 'package:codable_dart/standard.dart';
 import 'package:crimson/crimson.dart';
 
 extension JsonDecodable<T> on Decodable<T> {

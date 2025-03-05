@@ -1,4 +1,4 @@
-import 'package:codable/json.dart';
+import 'package:codable_dart/json.dart';
 import 'package:test/test.dart';
 
 import '../../basic/model/person.dart';

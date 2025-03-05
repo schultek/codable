@@ -1,5 +1,5 @@
-import 'package:codable/common.dart';
-import 'package:codable/core.dart';
+import 'package:codable_dart/common.dart';
+import 'package:codable_dart/core.dart';
 
 class Measures implements SelfEncodable {
   Measures(this.id, this.name, this.age, this.isActive, this.signupDate, this.website);

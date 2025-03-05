@@ -10,9 +10,9 @@ library csv;
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:codable/common.dart';
-import 'package:codable/core.dart';
-import 'package:codable/extended.dart';
+import 'package:codable_dart/common.dart';
+import 'package:codable_dart/core.dart';
+import 'package:codable_dart/extended.dart';
 
 extension CsvDecodable<T> on Decodable<T> {
   /// Decodes a CSV string into a list of objects.

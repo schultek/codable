@@ -1,7 +1,7 @@
-import 'package:codable/common.dart';
-import 'package:codable/core.dart';
-import 'package:codable/extended.dart';
-import 'package:codable/standard.dart';
+import 'package:codable_dart/common.dart';
+import 'package:codable_dart/core.dart';
+import 'package:codable_dart/extended.dart';
+import 'package:codable_dart/standard.dart';
 import 'package:test/test.dart';
 
 import 'model/box.dart';

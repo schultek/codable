@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:codable/core.dart';
+import 'package:codable_dart/core.dart';
 
 class Person with PersonRaw implements SelfEncodable {
   Person(this.name, this.age, this.height, this.isDeveloper, this.parent, this.hobbies, this.friends);

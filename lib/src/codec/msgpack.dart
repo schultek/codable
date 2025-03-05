@@ -1,5 +1,5 @@
-import 'package:codable/msgpack.dart';
-import 'package:codable/src/core/interface.dart';
+import 'package:codable_dart/msgpack.dart';
+import 'package:codable_dart/src/core/interface.dart';
 
 import 'codec.dart';
 

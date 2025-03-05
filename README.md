@@ -1,10 +1,8 @@
-# RFC: New Serialization Protocol for Dart
+# Codable: Serialization Protocol for Dart
 
-This repository contains the RFC and reference implementation for a new serialization protocol for Dart.
+This package contains the RFC and prototype implementation for a new serialization protocol for Dart.
 
 👉 **Read the RFC:** [RFC: New Serialization Protocol for Dart](https://github.com/schultek/codable/blob/main/docs/rfc.md)
-
-💬 **Discuss & Give Feedback** [Github Issue](https://github.com/schultek/codable/issues/1) / [Flutter Forum Post](https://forum.itsallwidgets.com/t/rfc-new-serialization-protocol-for-dart/2355)
 
 ---
 

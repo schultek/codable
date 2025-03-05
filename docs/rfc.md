@@ -174,7 +174,7 @@ The following shows an example of for de/encoding a [`Person`](https://github.co
 First we define the model by implementing `SelfEncodable`:
 
 ```dart
-import 'package:codable/core.dart';
+import 'package:codable_dart/core.dart';
 
 class Person implements SelfEncodable {
   Person(this.name, this.age);
@@ -192,7 +192,7 @@ class Person implements SelfEncodable {
 We also define a `static const Codable<Person> codable` on the `Person` class, which is defined like this:
 
 ```dart
-import 'package:codable/core.dart';
+import 'package:codable_dart/core.dart';
 
 class Person implements SelfEncodable {
   /* ... */
@@ -222,7 +222,7 @@ The `SelfCodable<T>` class extends `Codable<T>` and therefore implements both th
 This is already all we need for the `Person` model to be decoded and encoded to any available data format. We can now deserialize and serialize `Person` like this:
 
 ```dart
-import 'package:codable/json.dart';
+import 'package:codable_dart/json.dart';
 
 void main() {
   final String source = '{"name":"Kilian Schulte","age":27}';
@@ -242,7 +242,7 @@ The convention is that all data format implementations define these extensions. 
 
 ```dart
 // Changed from '/json.dart' to '/msgpack.dart'
-import 'package:codable/msgpack.dart';
+import 'package:codable_dart/msgpack.dart';
 
 void main() {
   final Uint8List source = /* binary data */;
@@ -301,7 +301,7 @@ class UriCodable extends Codable<Uri> {
 The [`UriCodable`](https://github.com/schultek/codable/blob/main/lib/src/common/uri.dart) makes the `Uri` class from `dart:core` serializable using the same extension methods as above:
 
 ```dart
-import 'package:codable/json.dart';
+import 'package:codable_dart/json.dart';
 
 void main() {
   final String source = '"https://schultek.dev"';
@@ -373,7 +373,7 @@ _This is the equivalent to what the `toJson()` method of `json_serializable` doe
 The usage is the same as with any other data format, and the methods are named `fromValue()` and `toValue()`. Additionally, because of the common use-case, there is an additional `fromMap()` and `toMap()` that simply cast the value:
 
 ```dart
-import 'package:codable/standard.dart';
+import 'package:codable_dart/standard.dart';
 
 void main() {
   final Map<String, dynamic> source = {'name': 'Jasper the Dog', 'age': 3};

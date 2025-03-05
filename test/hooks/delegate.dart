@@ -1,4 +1,4 @@
-import 'package:codable/core.dart';
+import 'package:codable_dart/core.dart';
 
 abstract class RecursiveDelegatingDecoder implements Decoder {
   RecursiveDelegatingDecoder(this.delegate);

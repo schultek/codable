@@ -1,6 +1,6 @@
 import 'dart:convert' hide JsonDecoder, JsonEncoder;
 
-import 'package:codable/core.dart';
+import 'package:codable_dart/core.dart';
 
 import '../../json.dart';
 import 'codec.dart';

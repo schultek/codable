@@ -1,7 +1,7 @@
 import 'dart:convert';
 
-import 'package:codable/json.dart';
-import 'package:codable/standard.dart';
+import 'package:codable_dart/json.dart';
+import 'package:codable_dart/standard.dart';
 import 'package:test/test.dart';
 
 import '../basic/model/person.dart';

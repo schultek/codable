@@ -1,4 +1,4 @@
-import 'package:codable/core.dart';
+import 'package:codable_dart/core.dart';
 
 /// A [Codable] that can encode and decode standard Dart objects (Maps, Lists, etc.).
 class ObjectCodable implements Codable<Object?> {

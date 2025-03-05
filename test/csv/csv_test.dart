@@ -1,9 +1,9 @@
 import 'dart:convert';
 
-import 'package:codable/common.dart';
-import 'package:codable/csv.dart';
-import 'package:codable/json.dart';
-import 'package:codable/standard.dart';
+import 'package:codable_dart/common.dart';
+import 'package:codable_dart/csv.dart';
+import 'package:codable_dart/json.dart';
+import 'package:codable_dart/standard.dart';
 import 'package:test/test.dart';
 
 import 'model/measures.dart';

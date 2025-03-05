@@ -13,7 +13,7 @@
 /// ```
 library generic;
 
-import 'package:codable/core.dart';
+import 'package:codable_dart/core.dart';
 
 // ==============================
 // Generics with 1 type parameter

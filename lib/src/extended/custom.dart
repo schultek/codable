@@ -1,4 +1,4 @@
-import 'package:codable/core.dart';
+import 'package:codable_dart/core.dart';
 
 abstract base class CustomTypeDelegate<T> implements Codable<T> {
   const CustomTypeDelegate();

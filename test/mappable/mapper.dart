@@ -1,10 +1,10 @@
-import 'package:codable/src/core/interface.dart';
+import 'package:codable_dart/src/core/interface.dart';
 import 'package:type_plus/type_plus.dart';
 import 'dart:async';
 
-import 'package:codable/common.dart';
-import 'package:codable/core.dart';
-import 'package:codable/extended.dart';
+import 'package:codable_dart/common.dart';
+import 'package:codable_dart/core.dart';
+import 'package:codable_dart/extended.dart';
 // ignore: implementation_imports
 import 'package:type_plus/src/types_registry.dart' show TypeRegistry;
 

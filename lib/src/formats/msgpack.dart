@@ -10,8 +10,8 @@ library msgpack;
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:codable/core.dart';
-import 'package:codable/extended.dart';
+import 'package:codable_dart/core.dart';
+import 'package:codable_dart/extended.dart';
 
 extension MsgPackDecodable<T> on Decodable<T> {
   T fromMsgPack(List<int> bytes) {

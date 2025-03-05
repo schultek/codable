@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:codable/standard.dart';
+import 'package:codable_dart/standard.dart';
 
 import '../../core.dart';
 import '../common/object.dart';

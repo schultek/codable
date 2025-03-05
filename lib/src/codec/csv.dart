@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:codable/core.dart';
-import 'package:codable/csv.dart';
-import 'package:codable/src/codec/codec.dart';
+import 'package:codable_dart/core.dart';
+import 'package:codable_dart/csv.dart';
+import 'package:codable_dart/src/codec/codec.dart';
 
 const CsvCodec csv = CsvCodec();
 
