@@ -1,6 +1,6 @@
 name: codable_dart
 description: A codable protocol for Dart.
-version: 1.0.0
+version: 0.1.0-beta.0
 repository: https://github.com/schultek/codable
 
 environment:

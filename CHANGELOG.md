@@ -1,3 +1,3 @@
-## 1.0.0
+## 0.1.0-beta.0
 
-- Initial version.
+- Initial prototype implementation.
