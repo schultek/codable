@@ -1,10 +1,7 @@
 import 'dart:convert';
 
-import 'package:codable_dart/common.dart';
 import 'package:codable_dart/json.dart';
-import 'package:codable_dart/src/codec/csv.dart';
-import 'package:codable_dart/src/codec/msgpack.dart';
-import 'package:codable_dart/src/formats/msgpack.dart';
+import 'package:codable_dart/msgpack.dart';
 import 'package:codable_dart/standard.dart';
 import 'package:test/test.dart';
 

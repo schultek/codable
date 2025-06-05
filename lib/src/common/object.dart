@@ -1,8 +1,15 @@
 import 'package:codable_dart/core.dart';
+import 'package:codable_dart/extended.dart';
 
 /// A [Codable] that can encode and decode standard Dart objects (Maps, Lists, etc.).
 class ObjectCodable implements Codable<Object?> {
   const ObjectCodable();
+
+  static SelfEncodable wrap(Object? value) {
+    return SelfEncodable.fromHandler((encoder) {
+      encoder.encodeObject(value, using: const ObjectCodable());
+    });
+  }
 
   @override
   Object? decode(Decoder decoder) {
@@ -55,5 +62,84 @@ class ObjectCodable implements Codable<Object?> {
     } else {
       encoder.encodeObject(value);
     }
+  }
+}
+
+
+
+extension AsNullableCodable<T> on Codable<T> {
+  /// Returns a [Codable] that can encode and decode [T] or null.
+  Codable<T?> get orNull => OrNullCodable<T>(this);
+}
+
+extension AsNullableDecodable<T> on Decodable<T> {
+  /// Returns a [Decodable] object that can decode [T] or null.
+  Decodable<T?> get orNull => OrNullDecodable<T>(this);
+}
+
+extension AsNullableListEncodable<T> on Encodable<T> {
+  /// Returns an [Encodable] that can encode [T] or null.
+  Encodable<T?> get orNull => OrNullEncodable<T>(this);
+}
+
+
+/// A [Codable] that can encode and decode [T] or null.
+///
+/// Prefer using [AsNullableCodable.orNull] instead of the constructor.
+class OrNullCodable<T> with _OrNullDecodable<T> implements Codable<T?>, ComposedDecodable1<T?, T> {
+  const OrNullCodable(this.codable);
+
+  @override
+  final Codable<T> codable;
+
+  @override
+  void encode(T? value, Encoder encoder) {
+    encoder.encodeObjectOrNull(value, using: codable);
+  }
+
+  @override
+  R extract<R>(R Function<A>(Codable<A>? codableA) fn) {
+    return fn<T>(codable);
+  }
+}
+
+/// A [Decodable] implementation that can decode [T] or null.
+///
+/// Prefer using [AsNullableDecodable.orNull] instead of the constructor.
+class OrNullDecodable<T> with _OrNullDecodable<T> implements ComposedDecodable1<T?, T> {
+  const OrNullDecodable(this.codable);
+
+  @override
+  final Decodable<T> codable;
+}
+
+/// An [Encodable] that can encode [T] or null.
+///
+/// Prefer using [AsNullableEncodable.orNull] instead of the constructor.
+class OrNullEncodable<T> implements Encodable<T?> {
+  const OrNullEncodable(this.codable);
+
+  final Encodable<T> codable;
+
+  @override
+  void encode(T? value, Encoder encoder) {
+    encoder.encodeObjectOrNull(value, using: codable);
+  }
+}
+
+mixin _OrNullDecodable<T> implements ComposedDecodable1<T?, T> {
+  Decodable<T> get codable;
+
+  @override
+  T? decode(Decoder decoder) {
+    return switch (decoder.whatsNext()) {
+      DecodingType.nil => decoder.decodeIsNull() ? null : decoder.expect('null'),
+      _ => codable.decode(decoder),
+    };
+  }
+
+  @override
+  R extract<R>(R Function<A>(Decodable<A>? codableA) fn) {
+    return fn<T>(codable);
   }
 }

@@ -45,11 +45,18 @@ extension JsonSelfEncodableSelf<T extends SelfEncodable> on T {
 }
 
 class JsonDecoder implements Decoder, IteratedDecoder, KeyedDecoder {
-  JsonDecoder._(this._reader);
-  final Crimson _reader;
+  JsonDecoder(List<int> bytes, [int offset = 0]) : _reader = Crimson(bytes, offset);
+
+  Crimson _reader;
+
+  Crimson get reader => _reader;
+
+  void skipBy(int count) {
+    _reader = Crimson(_reader.buffer, _reader.offset + count);
+  }
 
   static T decode<T>(List<int> value, Decodable<T> decodable) {
-    return decodable.decode(JsonDecoder._(Crimson(value)));
+    return decodable.decode(JsonDecoder(value));
   }
 
   @override
@@ -125,7 +132,11 @@ class JsonDecoder implements Decoder, IteratedDecoder, KeyedDecoder {
     if (using != null) {
       return using.decode(this);
     } else {
-      return _reader.read() as T;
+      return switch (_reader.whatIsNext()) {
+        JsonType.object => decodeMap<String, dynamic>() as T,
+        JsonType.array => decodeList<dynamic>() as T,
+        _ => _reader.read(),
+      } as T;
     }
   }
 
@@ -152,7 +163,10 @@ class JsonDecoder implements Decoder, IteratedDecoder, KeyedDecoder {
   Map<K, V> decodeMap<K, V>({Decodable<K>? keyUsing, Decodable<V>? valueUsing}) {
     return {
       for (String? key; (key = _reader.iterObject()) != null;)
-        StandardDecoder.decode<K>(key, using: keyUsing): decodeObject<V>(using: valueUsing),
+        if (key is K && keyUsing == null)
+          key as K: decodeObject<V>(using: valueUsing)
+        else
+          StandardDecoder.decode<K>(key, using: keyUsing): decodeObject<V>(using: valueUsing),
     };
   }
 
@@ -214,7 +228,7 @@ class JsonDecoder implements Decoder, IteratedDecoder, KeyedDecoder {
 
   @override
   JsonDecoder clone() {
-    return JsonDecoder._(Crimson(_reader.buffer, _reader.offset));
+    return JsonDecoder(_reader.buffer, _reader.offset);
   }
 
   @override
@@ -229,15 +243,17 @@ class JsonDecoder implements Decoder, IteratedDecoder, KeyedDecoder {
 }
 
 class JsonEncoder implements Encoder, IteratedEncoder {
-  JsonEncoder._(this._writer) {
+  JsonEncoder() : _writer = CrimsonWriter() {
     _keyed = JsonKeyedEncoder._(_writer, this);
   }
 
   final CrimsonWriter _writer;
   late final JsonKeyedEncoder _keyed;
 
+  CrimsonWriter get writer => _writer;
+
   static List<int> encode<T>(T value, {Encodable<T>? using}) {
-    var encoder = JsonEncoder._(CrimsonWriter());
+    var encoder = JsonEncoder();
     encoder.encodeObject(value, using: using);
     return encoder._writer.toBytes();
   }
@@ -329,7 +345,13 @@ class JsonEncoder implements Encoder, IteratedEncoder {
     } else if (value is SelfEncodable) {
       value.encode(this);
     } else {
-      _writer.write(value);
+      if (value is Map) {
+        encodeMap(value);
+      } else if (value is Iterable) {
+        encodeIterable(value);
+      } else {
+        _writer.write(value);
+      }
     }
   }
 
@@ -364,8 +386,12 @@ class JsonEncoder implements Encoder, IteratedEncoder {
   void encodeMap<K, V>(Map<K, V> value, {Encodable<K>? keyUsing, Encodable<V>? valueUsing}) {
     _writer.writeObjectStart();
     for (final key in value.keys) {
+      if (key is String && keyUsing == null) {
+        _writer.writeObjectKey(key);
+      } else {
+        _writer.writeObjectKey(StandardEncoder.encode<K>(key, using: keyUsing) as String);
+      }
       final v = value[key] as V;
-      _writer.writeObjectKey(StandardEncoder.encode<K>(key, using: keyUsing) as String);
       encodeObject<V>(v, using: valueUsing);
     }
     _writer.writeObjectEnd();
@@ -477,7 +503,7 @@ class JsonKeyedEncoder implements KeyedEncoder {
 
   @override
   bool canEncodeCustom<T>() {
-    return false;
+    return _parent.canEncodeCustom<T>();
   }
 
   @override
