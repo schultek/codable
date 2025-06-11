@@ -60,6 +60,5 @@ void main() {
       self: () => p.toJsonBytes(),
       other: () => p.toJsonBytesRaw(),
     );
-
   });
 }

@@ -6,8 +6,8 @@ import 'package:async/async.dart';
 import 'package:codable_dart/core.dart';
 import 'package:codable_dart/extended.dart';
 import 'package:codable_dart/src/extended/reference.dart';
-import 'package:crimson/crimson.dart';
 
+import '../helpers/binary_tokens.dart';
 import 'json.dart';
 
 extension ProgressiveJsonDecodable<T> on Decodable<T> {
@@ -129,9 +129,6 @@ class _SyncReferenceValue implements _ReferenceValue {
   void done() {}
 }
 
-const _tokenDollarSign = 0x24; // '$' in ASCII
-const _tokenColon = 0x3A; // ':' in ASCII
-
 class ProgressiveJsonDecoder extends JsonDecoder {
   ProgressiveJsonDecoder._(
     super.bytes, [
@@ -186,43 +183,46 @@ class ProgressiveJsonDecoder extends JsonDecoder {
   }
 
   static void _parseBytes(List<int> bytes, Map<int, _ReferenceValue> refs, bool isSync) {
-    final (marker, offset) = _parseLineMarker(bytes);
+    final decoder = ProgressiveJsonDecoder._(bytes, 0, isSync, refs);
+    final marker = decoder._parseLineMarker();
     final value = refs[marker] ??= (isSync ? _SyncReferenceValue() : _AsyncReferenceValue());
-    value.addValue(ProgressiveJsonDecoder._(bytes, offset, isSync, refs));
+    value.addValue(decoder);
   }
 
   @override
   DecodingType whatsNext() {
-    final type = reader.whatIsNext();
-    if (type == JsonType.number && reader.buffer[reader.offset] == _tokenDollarSign) {
+    skipWhitespace(); // Ensure we are at the start of a new value
+    if (buffer[offset] == tokenDollarSign) {
       return const DecodingType<Stream>.custom();
     }
     return super.whatsNext();
   }
 
-  static (int, int) _parseLineMarker(List<int> bytes) {
-    if (bytes[0] != _tokenDollarSign) {
-      return (0, 0);
+  int _parseLineMarker() {
+    if (buffer[offset] != tokenDollarSign) {
+      return 0; // No marker found, return 0
     }
-    final reader = Crimson(bytes, 1);
-    final marker = reader.readInt();
+
+    skipBytes(1); // Skip the dollar sign
+    final marker = decodeInt();
 
     assert(
-      reader.buffer[reader.offset] == _tokenColon,
-      'Expected a colon after marker, but found ${String.fromCharCode(reader.buffer[reader.offset])}',
+      buffer[offset] == tokenColon,
+      'Expected a colon after marker, but found ${String.fromCharCode(buffer[offset])}',
     );
+    skipBytes(1); // Skip the colon
 
-    return (marker, reader.offset + 1);
+    return marker;
   }
 
   int? _readMarker() {
-    reader.whatIsNext(); // Ensure we are at the start of a new value
-    if (reader.buffer[reader.offset] != _tokenDollarSign) {
+    skipWhitespace(); // Ensure we are at the start of a new value
+    if (buffer[offset] != tokenDollarSign) {
       return null;
     }
 
-    skipBy(1); // Skip the dollar sign
-    return reader.readInt();
+    skipBytes(1); // Skip the dollar sign
+    return decodeInt();
   }
 
   Stream _createStream(int marker, AsyncDecodable? using) {
@@ -279,7 +279,7 @@ class ProgressiveJsonDecoder extends JsonDecoder {
 
   @override
   ProgressiveJsonDecoder clone() {
-    return ProgressiveJsonDecoder._(reader.buffer, reader.offset, _isSync, _refs);
+    return ProgressiveJsonDecoder._(buffer, offset, _isSync, _refs);
   }
 }
 
@@ -301,7 +301,7 @@ abstract class _EncodingValues<T> {
 
     encoder.encodeObject(value);
 
-    final bytes = encoder.writer.toBytes() + [0x0A]; // Add newline at the end
+    final bytes = encoder.toBytes() + [0x0A]; // Add newline at the end
     return bytes;
   }
 }
@@ -434,9 +434,9 @@ class ProgressiveJsonEncoder extends JsonEncoder {
       encoder.encodeObject<Reference<T>>(Reference(value, using: using));
     }
 
-    var bytes = encoder.writer.toBytes();
+    var bytes = encoder.toBytes();
 
-    if (bytes case [_tokenDollarSign, 0x30 /* '0' */]) {
+    if (bytes case [tokenDollarSign, 0x30 /* '0' */]) {
       // Skip if the data is just a marker with no value
     } else {
       group.add(Stream.value(bytes + [0x0A])); // Add newline at the end
@@ -467,9 +467,9 @@ class ProgressiveJsonEncoder extends JsonEncoder {
     } else {
       encoder.encodeObject<Reference<T>>(Reference(value, using: using));
     }
-    var bytes = encoder.writer.toBytes();
+    var bytes = encoder.toBytes();
 
-    if (bytes case [_tokenDollarSign, 0x30 /* '0' */]) {
+    if (bytes case [tokenDollarSign, 0x30 /* '0' */]) {
       // Skip if the data is just a marker with no value
     } else {
       sink.add(bytes + [0x0A]); // Add newline at the end
@@ -482,9 +482,13 @@ class ProgressiveJsonEncoder extends JsonEncoder {
   }
 
   void encodeMarker(int marker) {
-    writer.writeByte(_tokenDollarSign);
-    writer.writeNum(marker);
-    writer.endMarker();
+    writeByte(tokenDollarSign);
+    encodeNum(marker);
+    if (buffer[offset - 1] == tokenComma) {
+      buffer[offset - 1] = tokenColon;
+    } else {
+      writeByte(tokenColon);
+    }
     _marker = marker;
   }
 
@@ -502,8 +506,8 @@ class ProgressiveJsonEncoder extends JsonEncoder {
   }
 
   void _encodeMarker(int marker) {
-    writer.writeByte(_tokenDollarSign);
-    writer.writeNum(marker);
+    writeByte(tokenDollarSign);
+    encodeNum(marker);
   }
 
   @override

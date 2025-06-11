@@ -12,9 +12,8 @@ topics:
   - json
 
 dependencies:
-  # TODO: Replace with own implementation
-  crimson: ^0.3.1
   async: ^2.13.0
+  meta: ^1.17.0
 
 dev_dependencies:
   collection: ^1.19.1

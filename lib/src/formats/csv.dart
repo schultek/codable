@@ -14,6 +14,8 @@ import 'package:codable_dart/common.dart';
 import 'package:codable_dart/core.dart';
 import 'package:codable_dart/extended.dart';
 
+import '../helpers/binary_tokens.dart';
+
 extension CsvDecodable<T> on Decodable<T> {
   /// Decodes a CSV string into a list of objects.
   List<T> fromCsv(String csv) {
@@ -1279,9 +1281,3 @@ class _StringBytesSink implements Sink<String> {
     builder.close();
   }
 }
-
-const tokenSpace = 0x20;
-const tokenLineFeed = 0x0A;
-
-const tokenDoubleQuote = 0x22;
-const tokenComma = 0x2C;
