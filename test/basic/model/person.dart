@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:codable_dart/core.dart';
+import 'package:codable_dart/src/extended/lazy.dart';
 
 class Person with PersonRaw implements SelfEncodable {
   Person(this.name, this.age, this.height, this.isDeveloper, this.parent, this.hobbies, this.friends);
@@ -57,7 +58,7 @@ class Person with PersonRaw implements SelfEncodable {
 ///
 /// This extends the [SelfCodable] class for a default implementation of [encode] and
 /// implements the [decode] method.
-class PersonCodable extends SelfCodable<Person> {
+class PersonCodable extends SelfCodable<Person> implements LazyDecodable<Person> {
   const PersonCodable();
 
   @override
@@ -114,6 +115,41 @@ class PersonCodable extends SelfCodable<Person> {
       mapped.decodeList('hobbies'),
       mapped.decodeList('friends', using: Person.codable),
     );
+  }
+
+  @override
+  void decodeLazy(LazyDecoder decoder, void Function(Person) resolve) {
+    late String name;
+    late int age;
+    late double height;
+    late bool isDeveloper;
+    Person? parent;
+    late List<String> hobbies;
+    late List<Person> friends;
+
+    decoder.decodeKeyed((key, decoder) {
+      switch (key) {
+        case 'name':
+          decoder.decodeEager((d) => name = d.decodeString());
+        case 'age':
+          decoder.decodeEager((d) => age = d.decodeInt());
+        case 'height':
+          decoder.decodeEager((d) => height = d.decodeDouble());
+        case 'isDeveloper':
+          decoder.decodeEager((d) => isDeveloper = d.decodeBool());
+        case 'parent':
+          decoder.decodeObjectOrNull((value) => parent = value, using: Person.codable);
+        case 'hobbies':
+          decoder.decodeList<String>((d) => hobbies = d);
+        case 'friends':
+          decoder.decodeList<Person>((value) => friends = value, using: Person.codable);
+        default:
+          decoder.skipCurrentValue();
+      }
+    }, done: () {
+      final person = Person(name, age, height, isDeveloper, parent, hobbies, friends);
+      resolve(person);
+    });
   }
 }
 

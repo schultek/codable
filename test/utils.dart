@@ -1,24 +1,25 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:codable_dart/src/helpers/binary_tokens.dart';
 import 'package:test/test.dart';
 
 
-Stream<List<int>> streamData(String data) async* {
-  final chars = data.split(RegExp(r''));
-  var chunk = '';
-  for (final char in chars) {
-    chunk += char;
-    if (char == '\n') {
-      print("--- Sending chunk: ${chunk.trim()}");
-      yield utf8.encode(chunk);
-      chunk = '';
+Stream<List<int>> streamData(List<int> data,[ bool Function(int)? split]) async* {
+  split ??= (int char) => char == tokenLineFeed;
+  var chunk = <int>[];
+  for (final char in data) {
+    chunk.add(char);
+    if (split(char)) {
+      print("--- Sending chunk: ${utf8.decode(chunk).trim()}");
+      yield chunk;
+      chunk = <int>[];
       await Future.delayed(const Duration(milliseconds: 100));
     }
   }
   if (chunk.isNotEmpty) {
-    print("--- Sending final chunk: $chunk");
-    yield utf8.encode(chunk);
+    print("--- Sending final chunk: ${utf8.decode(chunk).trim()}");
+    yield chunk;
   }
 }
 

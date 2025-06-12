@@ -2,21 +2,23 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:codable_dart/extended.dart';
+import 'package:codable_dart/progressive_json.dart';
 import 'package:codable_dart/src/common/object.dart';
 import 'package:codable_dart/src/extended/reference.dart';
 import 'package:codable_dart/src/formats/progressive_json.dart';
+import 'package:codable_dart/standard.dart';
 import 'package:test/test.dart';
 
 import 'model/async_value.dart';
 import 'model/circle.dart';
 import 'model/person.dart';
-import 'utils.dart';
+import '../utils.dart';
 
 void main() {
   group("progressive json", () {
     group("async", () {
       test("decodes from stream", () async {
-        final stream = Person.codable.fromProgressiveJsonStream(streamData(r'''
+        final stream = Person.codable.fromProgressiveJsonStream(streamData(utf8.encode(r'''
 {"name": "Alice Smith", "age": 30, "parent": $1, "friends": $2, "comments": $4}
 $2:[$1, $3]
 $1:{"name": "Carol Smith", "age": 55, "parent": null, "friends": [$3], "comments": null}
@@ -25,7 +27,7 @@ $3:{"name": "Bob Johnson", "age": 32, "parent": null, "friends": [$0], "comments
 $4:"This is the second comment."
 $4:"This is the third comment."
 $4:"This is the fourth comment."
-'''));
+''')));
 
         final tester = AsyncTester()..addStream(0, stream);
 
@@ -76,7 +78,7 @@ $4:"This is the fourth comment."
       });
 
       test("decodes from simple stream", () async {
-        Stream<dynamic> stream = ObjectCodable().fromProgressiveJsonStream(streamData(r'''
+        Stream<dynamic> stream = ObjectCodable().fromProgressiveJsonStream(streamData(utf8.encode(r'''
 0 
 "Hello, World!" 
 2 
@@ -86,7 +88,7 @@ $4:"This is the fourth comment."
 $1: 6 
 $1: 7 
 8 
-'''));
+''')));
 
         final tester = AsyncTester()..addStream(0, stream);
 
@@ -251,6 +253,38 @@ $4:"This is a comment from Dave."
 
         await tester.match([
           '{"this":\$0}\n',
+        ]);
+      });
+
+      test("decodes using codec", () async {
+
+        Stream<dynamic> stream = ObjectCodable().codec.fuse(progressiveJson).decoder.bind(streamData(utf8.encode(r'''
+0 
+"Hello, World!" 
+2 
+{"test": $1} 
+4 
+5 
+$1: 6 
+$1: 7 
+8 
+''')));
+
+        final tester = AsyncTester()..addStream(0, stream);
+
+        await tester.match([
+          0,
+          'Hello, World!',
+          2,
+          (map) {
+            expect(map['test'], isA<Stream>());
+            tester.addStream(1, map['test'] as Stream);
+          },
+          4,
+          5,
+          (1, 6),
+          (1, 7),
+          8,
         ]);
       });
     });

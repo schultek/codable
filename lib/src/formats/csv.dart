@@ -22,7 +22,7 @@ extension CsvDecodable<T> on Decodable<T> {
     return CsvDecoder.decode(csv, list());
   }
 
-  List<T> fromCsvBytes(Uint8List bytes) {
+  List<T> fromCsvBytes(List<int> bytes) {
     return CsvDecoder.decodeBytes(bytes, list());
   }
 }
@@ -33,7 +33,7 @@ extension CsvEncodable<T> on Encodable<T> {
     return CsvEncoder.encode(value, using: list());
   }
 
-  Uint8List toCsvBytes(Iterable<T> value) {
+  List<int> toCsvBytes(Iterable<T> value) {
     return CsvEncoder.encodeBytes(value, using: list());
   }
 }
@@ -65,7 +65,7 @@ class CsvDecoder with _CsvDecoder implements Decoder {
     return decoder.decodeObject(using: decodable);
   }
 
-  static T decodeBytes<T>(Uint8List value, Decodable<T> decodable) {
+  static T decodeBytes<T>(List<int> value, Decodable<T> decodable) {
     final decoder = CsvDecoder._(value);
     return decoder.decodeObject(using: decodable);
   }
@@ -681,7 +681,7 @@ class CsvEncoder<S extends Sink<String>> implements Encoder {
     return '${encoder.keys.join(',')}\n${sink.buffer}';
   }
 
-  static Uint8List encodeBytes<T>(T value, {Encodable<T>? using}) {
+  static List<int> encodeBytes<T>(T value, {Encodable<T>? using}) {
     final sink = _StringBytesSink();
     final encoder = CsvEncoder._(sink);
     encoder.encodeObject(value, using: using);

@@ -5,6 +5,7 @@ import 'package:codable_dart/msgpack.dart';
 import 'package:codable_dart/standard.dart';
 import 'package:test/test.dart';
 
+import '../utils.dart';
 import 'model/person.dart';
 import 'test_data.dart';
 
@@ -110,6 +111,15 @@ void main() {
         expect(encoded, equals(personTestMsgpackBytes));
       });
 
+      test('decodes chunked json', () async {
+        var n = 1;
+        final stream = Person.codable.codec.fuse(json).fuse(utf8).decoder.bind(streamData(personTestJsonBytes, (char) {
+          return n++ % 100 == 0;
+        }));
+
+        final Person p = await stream.single;
+        expect(p, equals(expectedPerson));
+      });
     });
   });
 }

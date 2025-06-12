@@ -1,5 +1,6 @@
 import 'package:codable_dart/core.dart';
 import 'package:codable_dart/extended.dart';
+import 'package:codable_dart/src/extended/lazy.dart';
 
 extension AsListCodable<T> on Codable<T> {
   /// Returns a [Codable] that can encode and decode a list of [T].
@@ -98,7 +99,7 @@ class ListEncodable<E> implements Encodable<List<E>> {
   }
 }
 
-mixin _ListDecodable<E> implements ComposedDecodable1<List<E>, E> {
+mixin _ListDecodable<E> implements ComposedDecodable1<List<E>, E>, LazyDecodable<List<E>> {
   Decodable<E> get codable;
 
   @override
@@ -108,6 +109,18 @@ mixin _ListDecodable<E> implements ComposedDecodable1<List<E>, E> {
       DecodingType.iterated => [for (final d = decoder.decodeIterated(); d.nextItem();) d.decodeObject(using: codable)],
       _ => decoder.expect('list or iterated'),
     };
+  }
+
+  @override
+  void decodeLazy(LazyDecoder decoder, void Function(List<E>) resolve) {
+    final list = <E>[];
+    decoder.decodeIterated((decoder) {
+      decoder.decodeObject(using: codable, (value) {
+        list.add(value);
+      });
+    }, done: () {
+      resolve(list);
+    });
   }
 
   @override

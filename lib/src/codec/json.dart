@@ -1,43 +1,37 @@
 import 'dart:convert' hide JsonDecoder, JsonEncoder;
 
 import 'package:codable_dart/core.dart';
+import 'package:codable_dart/src/common/object.dart';
 
 import '../../json.dart';
 import 'codec.dart';
 
-class JsonCodableCodec extends CodableCodec<String> {
-  const JsonCodableCodec();
+const Codec<Object?, String> json = CodableCodec(_JsonDelegate(), ObjectCodable());
+
+class _JsonDelegate extends CodableCodecDelegate<String> {
+  const _JsonDelegate();
 
   @override
-  T performDecode<T>(String value, {required Decodable<T> using}) {
-    return JsonDecoder.decode(utf8.encode(value), using);
-  }
+  T decode<T>(String input, Decodable<T> using) => JsonDecoder.decode(utf8.encode(input), using);
 
   @override
-  String performEncode<T>(T value, {required Encodable<T> using}) {
-    return utf8.decode(JsonEncoder.encode(value, using: using));
-  }
+  String encode<T>(T input, Encodable<T> using) => utf8.decode(JsonEncoder.encode(input, using: using));
 
   @override
-  Codec<Object?, R> fuse<R>(Codec<String, R> other) {
+  CodableCodecDelegate<R>? fuse<R>(Codec<String, R> other) {
     if (other is Utf8Codec) {
-      return _JsonBytesCodableCodec() as Codec<Object?, R>;
-    } else {
-      return super.fuse(other);
+      return const _JsonBytesDelegate() as CodableCodecDelegate<R>;
     }
+    return null;
   }
 }
 
-class _JsonBytesCodableCodec extends CodableCodec<List<int>> {
-  const _JsonBytesCodableCodec();
+class _JsonBytesDelegate extends CodableCodecDelegate<List<int>> {
+  const _JsonBytesDelegate();
 
   @override
-  T performDecode<T>(List<int> value, {required Decodable<T> using}) {
-    return JsonDecoder.decode(value, using);
-  }
+  T decode<T>(List<int> input, Decodable<T> using) => JsonDecoder.decode(input, using);
 
   @override
-  List<int> performEncode<T>(T value, {required Encodable<T> using}) {
-    return JsonEncoder.encode(value, using: using);
-  }
+  List<int> encode<T>(T input, Encodable<T> using) => JsonEncoder.encode(input, using: using);
 }
