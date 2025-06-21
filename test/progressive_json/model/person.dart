@@ -4,7 +4,6 @@ import 'package:codable_dart/extended.dart';
 
 import 'async_value.dart';
 
-
 class Person implements SelfEncodable {
   Person(this.name, this.age, this.parent, this.friends, this.comments);
 
@@ -27,8 +26,8 @@ class Person implements SelfEncodable {
   //         friends == other.friends &&
   //         comments == other.comments;
 
-  @override
-  int get hashCode => Object.hash(name, age, parent, friends, comments);
+  // @override
+  // int get hashCode => Object.hash(name, age, parent, friends, comments);
 
   @override
   String toString() {

@@ -4,8 +4,6 @@ import 'dart:convert';
 import 'package:codable_dart/extended.dart';
 import 'package:codable_dart/progressive_json.dart';
 import 'package:codable_dart/src/common/object.dart';
-import 'package:codable_dart/src/extended/reference.dart';
-import 'package:codable_dart/src/formats/progressive_json.dart';
 import 'package:codable_dart/standard.dart';
 import 'package:test/test.dart';
 

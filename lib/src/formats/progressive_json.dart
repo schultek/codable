@@ -5,7 +5,6 @@ import 'dart:typed_data';
 import 'package:async/async.dart';
 import 'package:codable_dart/core.dart';
 import 'package:codable_dart/extended.dart';
-import 'package:codable_dart/src/extended/reference.dart';
 
 import '../helpers/binary_tokens.dart';
 import 'json.dart';

@@ -1,6 +1,5 @@
 import 'package:codable_dart/core.dart';
 import 'package:codable_dart/extended.dart';
-import 'package:codable_dart/src/extended/lazy.dart';
 
 extension AsListCodable<T> on Codable<T> {
   /// Returns a [Codable] that can encode and decode a list of [T].

@@ -6,7 +6,7 @@ import 'package:codable_dart/src/extended/lazy.dart';
 class Person with PersonRaw implements SelfEncodable {
   Person(this.name, this.age, this.height, this.isDeveloper, this.parent, this.hobbies, this.friends);
 
-  static const Codable<Person> codable = PersonCodable();
+  static const LazyCodable<Person> codable = PersonCodable();
 
   final String name;
   final int age;
@@ -58,7 +58,7 @@ class Person with PersonRaw implements SelfEncodable {
 ///
 /// This extends the [SelfCodable] class for a default implementation of [encode] and
 /// implements the [decode] method.
-class PersonCodable extends SelfCodable<Person> implements LazyDecodable<Person> {
+class PersonCodable extends SelfCodable<Person> implements LazyCodable<Person> {
   const PersonCodable();
 
   @override
@@ -127,22 +127,30 @@ class PersonCodable extends SelfCodable<Person> implements LazyDecodable<Person>
     late List<String> hobbies;
     late List<Person> friends;
 
+    void setName(Decoder d) => name = d.decodeString();
+    void setAge(Decoder d) => age = d.decodeInt();
+    void setHeight(Decoder d) => height = d.decodeDouble();
+    void setIsDeveloper(Decoder d) => isDeveloper = d.decodeBool();
+    void setParent(Person? value) => parent = value;
+    void setHobbies(List<String> value) => hobbies = value;
+    void setFriends(List<Person> value) => friends = value;
+
     decoder.decodeKeyed((key, decoder) {
       switch (key) {
         case 'name':
-          decoder.decodeEager((d) => name = d.decodeString());
+          decoder.decodeEager(setName);
         case 'age':
-          decoder.decodeEager((d) => age = d.decodeInt());
+          decoder.decodeEager(setAge);
         case 'height':
-          decoder.decodeEager((d) => height = d.decodeDouble());
+          decoder.decodeEager(setHeight);
         case 'isDeveloper':
-          decoder.decodeEager((d) => isDeveloper = d.decodeBool());
+          decoder.decodeEager(setIsDeveloper);
         case 'parent':
-          decoder.decodeObjectOrNull((value) => parent = value, using: Person.codable);
+          decoder.decodeObjectOrNull(setParent, using: Person.codable);
         case 'hobbies':
-          decoder.decodeList<String>((d) => hobbies = d);
+          decoder.decodeList<String>(setHobbies);
         case 'friends':
-          decoder.decodeList<Person>((value) => friends = value, using: Person.codable);
+          decoder.decodeList<Person>(setFriends, using: Person.codable);
         default:
           decoder.skipCurrentValue();
       }

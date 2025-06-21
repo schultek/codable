@@ -1,5 +1,5 @@
-// COPYRIGHT NOTICE: 
-// This file contains code derived from the 'crimson' package, 
+// COPYRIGHT NOTICE:
+// This file contains code derived from the 'crimson' package,
 // licensed under Apache License 2.0 by Simon Choi.
 
 /// JSON reference implementation.
@@ -7,6 +7,7 @@
 /// A format that encodes models to a JSON string or bytes.
 library json;
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
@@ -25,6 +26,30 @@ extension JsonDecodable<T> on Decodable<T> {
 
   T fromJsonBytes(List<int> bytes) {
     return JsonDecoder.decode<T>(bytes, this);
+  }
+}
+
+extension JsonLazyDecodable<T> on LazyDecodable<T> {
+  Future<T> fromJsonStream(Stream<List<int>> json) async {
+    return _fromJsonStream(json);
+  }
+
+  Future<T> _fromJsonStream(Stream<List<int>> json) {
+    final completer = Completer<T>();
+    final sink = JsonDecoder.decodeLazy<T>(completer.complete, this, onError: completer.completeError, onDone: () {});
+    json.listen(sink.add, onError: sink.addError, onDone: sink.close);
+    return completer.future;
+  }
+}
+
+extension JsonLazyStreamDecodable<T> on LazyDecodable<Stream<T>> {
+  Stream<T> fromJsonStream(Stream<List<int>> json) {
+    final controller = StreamController<T>();
+    _fromJsonStream(json) //
+        .then(controller.addStream)
+        .catchError(controller.addError)
+        .whenComplete(controller.close);
+    return controller.stream;
   }
 }
 
@@ -60,6 +85,14 @@ class JsonDecoder implements Decoder, IteratedDecoder, KeyedDecoder {
 
   static T decode<T>(List<int> value, Decodable<T> decodable) {
     return decodable.decode(JsonDecoder(value));
+  }
+
+  static EventSink<List<int>> decodeLazy<T>(void Function(T) onValue, Decodable<T> decodable,
+      {void Function(Object error, [StackTrace? stackTrace])? onError, required void Function() onDone}) {
+    final decoder = JsonLazyDecoder();
+    decoder.decodeObject(onValue, using: decodable);
+
+    return JsonDecoderSink(decoder, onError, onDone);
   }
 
   @override
@@ -438,7 +471,7 @@ class JsonDecoder implements Decoder, IteratedDecoder, KeyedDecoder {
       _expect('number', i - 1);
     }
 
-    while (true) {
+    while (i < buffer.length) {
       final c = buffer[i++];
       final digit = c ^ tokenZero;
       if (digit <= 9) {
@@ -505,7 +538,7 @@ class JsonDecoder implements Decoder, IteratedDecoder, KeyedDecoder {
       _expect('number', i - 1);
     }
 
-    while (true) {
+    while (i < buffer.length) {
       final digit = buffer[i++] ^ tokenZero;
       if (digit <= 9) {
         value = 10 * value + digit;
@@ -695,6 +728,433 @@ class JsonDecoder implements Decoder, IteratedDecoder, KeyedDecoder {
       }
     }
     _offset = i - 1;
+  }
+}
+
+class JsonDecoderSink<T> implements EventSink<List<int>> {
+  JsonDecoderSink(this.decoder, this.onError, this.onClose);
+
+  final JsonLazyDecoder decoder;
+  final void Function(Object error, [StackTrace? stackTrace])? onError;
+  final void Function() onClose;
+
+  @override
+  void add(List<int> data) {
+    decoder._add(data);
+  }
+
+  @override
+  void addError(Object error, [StackTrace? stackTrace]) {
+    if (onError case final onError?) {
+      onError(error, stackTrace);
+    } else {
+      Error.throwWithStackTrace(error, stackTrace ?? StackTrace.current);
+    }
+  }
+
+  @override
+  void close() {
+    while (decoder._consumers.isNotEmpty) {
+      decoder._consumers.removeLast().close();
+    }
+    onClose();
+  }
+}
+
+abstract class JsonConsumer {
+  int add(List<int> data, int offset);
+  bool get isDone;
+  void close();
+}
+
+class WhatsNextConsumer implements JsonConsumer {
+  WhatsNextConsumer(this._onNext);
+
+  final void Function(DecodingType) _onNext;
+
+  bool _isDone = false;
+  @override
+  bool get isDone => _isDone;
+
+  @override
+  int add(List<int> data, int offset) {
+    while (data[offset] <= tokenSpace && offset < data.length) {
+      offset++;
+    }
+    if (offset >= data.length) {
+      return offset; // No more bytes to process.
+    }
+    final byte = data[offset];
+    final next = switch (byte) {
+      tokenDoubleQuote => DecodingType.string,
+      tokenT || tokenF => DecodingType.bool,
+      tokenN => DecodingType.nil,
+      tokenLBrace => DecodingType.keyed,
+      tokenLBracket => DecodingType.iterated,
+      _ => DecodingType.num,
+    };
+    _onNext(next);
+    close();
+    return offset; // Return the current offset, which is the next byte to process.
+  }
+
+  @override
+  void close() {
+    _isDone = true;
+  }
+}
+
+class ValueJsonConsumer implements JsonConsumer {
+  ValueJsonConsumer(this._onValue);
+
+  final void Function(JsonDecoder) _onValue;
+
+  final _buffers = <List<int>>[];
+
+  // 0 = idle, 1 = string, 2 = string escape sequence
+  int mode = 0;
+  int _nesting = 0;
+
+  bool _isDone = false;
+  @override
+  bool get isDone => _isDone;
+
+  @override
+  int add(List<int> data, int offset) {
+    if (mode == 0) {
+      while (offset < data.length && data[offset] <= tokenSpace) {
+        offset++;
+      }
+      if (offset >= data.length) {
+        return offset; // No more bytes to process.
+      }
+    }
+    for (int o = offset; o < data.length; o++) {
+      final byte = data[o];
+
+      if (mode == 0) {
+        if (byte == tokenDoubleQuote) {
+          mode = 1;
+        } else if (byte == tokenLBrace || byte == tokenLBracket) {
+          _nesting++;
+        } else if (byte == tokenRBrace || byte == tokenRBracket) {
+          if (_nesting == 0) {
+            _addRange(data, offset, o);
+            close();
+            return o; // Return the current offset, which is the next byte of the outer object.
+          }
+          _nesting--;
+        } else if (_nesting == 0 && (byte == tokenComma || byte == tokenColon)) {
+          _addRange(data, offset, o);
+          close();
+          return o; // Return the current offset, which is the next byte of the outer object.
+        }
+      } else if (mode == 1) {
+        if (byte == tokenBackslash) {
+          mode = 2;
+        } else if (byte == tokenDoubleQuote) {
+          mode = 0;
+          _addRange(data, offset, o + 1);
+          close();
+          return o + 1; // Return the next offset after the closing quote.
+        }
+      } else if (mode == 2) {
+        mode = 1;
+      }
+    }
+
+    _addRange(data, offset, data.length);
+    return data.length; // All bytes processed, no more items.
+  }
+
+  void _addRange(List<int> data, int start, int end) {
+    if (start == end) {
+      return; // No data to add.
+    }
+    if (data is Uint8List) {
+      _buffers.add(Uint8List.view(data.buffer, data.offsetInBytes + start, end - start));
+    } else {
+      _buffers.add(data.sublist(start, end));
+    }
+  }
+
+  /// Merges the internal buffers to a single List.
+  List<int> _toBytes() {
+    if (_buffers.isEmpty) {
+      return []; // No data to return.
+    }
+    if (_buffers.length == 1) {
+      return _buffers[0]; // Only one buffer, no merging.
+    }
+
+    var size = 0;
+    for (final buffer in _buffers) {
+      size += buffer.length;
+    }
+    final result = Uint8List(size);
+    var offset = 0;
+    for (final buffer in _buffers) {
+      result.setRange(offset, offset + buffer.length, buffer);
+      offset += buffer.length;
+    }
+    return result;
+  }
+
+  @override
+  void close() {
+    _onValue(JsonDecoder(_toBytes()));
+    _isDone = true;
+  }
+}
+
+class IteratedJsonConsumer implements JsonConsumer {
+  IteratedJsonConsumer(this.parent, this.onItem, this.done);
+
+  final LazyIteratedDecoder parent;
+
+  final void Function(LazyIteratedDecoder decoder) onItem;
+  final void Function() done;
+
+  bool _isItem = false;
+
+  bool _isDone = false;
+
+  @override
+  bool get isDone => _isDone;
+
+  @override
+  int add(List<int> data, int offset) {
+    while (offset < data.length && data[offset] <= tokenSpace) {
+      offset++;
+    }
+    if (offset >= data.length) {
+      return offset; // No more bytes to process.
+    }
+    for (int o = offset; o < data.length; o++) {
+      final byte = data[o];
+      if (byte == tokenRBracket) {
+        done();
+        _isDone = true;
+        return o + 1; // Return the next offset after the closing bracket.
+      }
+      if (_isItem) {
+        onItem(parent);
+        _isItem = false;
+        return o; // Return the current offset, which is the first byte of the next item.
+      }
+      if (byte == tokenLBracket || byte == tokenComma) {
+        _isItem = true;
+        continue; // Continue to the next byte.
+      }
+      throw StateError('Unexpected byte "${String.fromCharCode(byte)}" in IteratedJsonConsumer');
+    }
+
+    return data.length; // All bytes processed, no more items.
+  }
+
+  @override
+  void close() {
+    throw StateError('Iterated consumer did not finish.');
+  }
+}
+
+class KeyedJsonConsumer implements JsonConsumer {
+  KeyedJsonConsumer(this.parent, this.onEntry, this.done);
+
+  final LazyKeyedDecoder parent;
+
+  final void Function(String key, LazyKeyedDecoder decoder) onEntry;
+  final void Function() done;
+
+  bool _isEntry = false;
+  String? _currentKey;
+  bool _isDone = false;
+
+  @override
+  bool get isDone => _isDone;
+
+  @override
+  int add(List<int> data, int offset) {
+    while (offset < data.length && data[offset] <= tokenSpace) {
+      offset++;
+    }
+    if (offset >= data.length) {
+      return offset; // No more bytes to process.
+    }
+
+    for (int o = offset; o < data.length; o++) {
+      final byte = data[o];
+      if (byte == tokenRBrace) {
+        done();
+        _isDone = true;
+        return o + 1; // Return the next offset after the closing brace.
+      }
+      if (_isEntry) {
+        parent.decodeEager((d) {
+          _currentKey = d.decodeString();
+        });
+        _isEntry = false;
+        return o; // Return the current offset, which is the first byte of the key.
+      }
+      if (byte == tokenColon) {
+        assert(_currentKey != null, "No key was read before colon.");
+        onEntry(_currentKey!, parent);
+        _currentKey = null;
+        return o + 1; // Return the next offset after the colon.
+      }
+      if (byte == tokenLBrace || byte == tokenComma) {
+        _isEntry = true;
+        continue; // Continue to the next byte.
+      }
+      throw StateError('Unexpected byte "${String.fromCharCode(byte)}" in KeyedJsonConsumer');
+    }
+
+    return data.length; // All bytes processed, no more entries.
+  }
+
+  @override
+  void close() {
+    throw StateError('Keyed consumer did not finish.');
+  }
+}
+
+class NullableJsonConsumer<T> implements JsonConsumer {
+  NullableJsonConsumer(this.parent, this.onValue, this.using);
+
+  final LazyIteratedDecoder parent;
+
+  final void Function(T? value) onValue;
+  final Decodable<T>? using;
+
+  int _nullOffset = 0;
+  final _nullTokens = [tokenN, tokenU, tokenL, tokenL];
+
+  bool _isDone = false;
+
+  @override
+  bool get isDone => _isDone;
+
+  @override
+  int add(List<int> data, int offset) {
+    while (offset < data.length && data[offset] <= tokenSpace) {
+      offset++;
+    }
+    if (offset >= data.length) {
+      return offset; // No more bytes to process.
+    }
+
+    for (int o = offset; o < data.length; o++) {
+      final byte = data[o];
+      if (_nullOffset > 0) {
+        if (byte != _nullTokens[_nullOffset]) {
+          throw CodableException.unexpectedType(expected: 'null', actual: String.fromCharCode(byte));
+        }
+        _nullOffset++;
+        if (_nullOffset == 4) {
+          onValue(null);
+          _isDone = true;
+          return o + 1; // Return the next offset after the null value.
+        }
+        continue; // Continue to the next byte.
+      } else if (byte == tokenN) {
+        _nullOffset++;
+        continue; // Start reading null.
+      } else {
+        parent.decodeObject(onValue, using: using);
+        _isDone = true;
+        return o; // Return the current offset, which is the first byte of the value.
+      }
+    }
+
+    return data.length; // All bytes processed, no more entries.
+  }
+
+  @override
+  void close() {
+    throw StateError('Nullable consumer did not finish.');
+  }
+}
+
+class JsonLazyDecoder implements LazyDecoder, LazyIteratedDecoder, LazyKeyedDecoder {
+  JsonLazyDecoder();
+
+  final List<JsonConsumer> _consumers = [];
+  JsonConsumer? _current;
+
+  void _add(List<int> data) {
+    var offset = 0;
+
+    while (offset < data.length && _current != null) {
+      final consumer = _current!;
+      offset = consumer.add(data, offset);
+      if (consumer.isDone) {
+        _consumers.remove(consumer);
+        _current = _consumers.lastOrNull;
+      }
+    }
+    if (offset < data.length) {
+      throw StateError('Not all bytes were consumed: ${utf8.decode(data.sublist(offset))}');
+    }
+  }
+
+  @override
+  void whatsNext(void Function(DecodingType type) onNext) {
+    _consumers.add(_current = WhatsNextConsumer(onNext));
+  }
+
+  @override
+  void decodeEager(void Function(JsonDecoder decoder) onDecode) {
+    _consumers.add(_current = ValueJsonConsumer(onDecode));
+  }
+
+  @override
+  void decodeIterated(void Function(LazyIteratedDecoder decoder) onItem, {required void Function() done}) {
+    _consumers.add(_current = IteratedJsonConsumer(this, onItem, done));
+  }
+
+  @override
+  void decodeKeyed(void Function(String key, LazyKeyedDecoder decoder) onEntry, {required void Function() done}) {
+    _consumers.add(_current = KeyedJsonConsumer(this, onEntry, done));
+  }
+
+  @override
+  void decodeList<T>(void Function(List<T> value) onValue, {Decodable<T>? using}) {
+    final items = <T>[];
+    decodeIterated((decoder) {
+      decoder.decodeObject(items.add, using: using);
+    }, done: () {
+      onValue(items);
+    });
+  }
+
+  @override
+  void decodeObject<T>(void Function(T value) onValue, {Decodable<T>? using}) {
+    if (using is LazyDecodable<T>) {
+      using.decodeLazy(this, onValue);
+    } else {
+      decodeEager((decoder) {
+        onValue(decoder.decodeObject<T>(using: using));
+      });
+    }
+  }
+
+  @override
+  void decodeObjectOrNull<T>(void Function(T? value) onValue, {Decodable<T>? using}) {
+    _consumers.add(_current = NullableJsonConsumer(this, onValue, using));
+  }
+
+  @override
+  void skipCurrentItem() {
+    _consumers.add(_current = ValueJsonConsumer((_) {
+      // Noop
+    }));
+  }
+
+  @override
+  void skipCurrentValue() {
+    _consumers.add(_current = ValueJsonConsumer((_) {
+      // Noop
+    }));
   }
 }
 
@@ -1078,7 +1538,6 @@ class JsonEncoder implements Encoder, IteratedEncoder {
     result.setRange(offset, offset + _offset, _buffer);
     return result;
   }
-
 }
 
 class JsonKeyedEncoder implements KeyedEncoder {

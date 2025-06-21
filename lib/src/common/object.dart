@@ -2,7 +2,7 @@ import 'package:codable_dart/core.dart';
 import 'package:codable_dart/extended.dart';
 
 /// A [Codable] that can encode and decode standard Dart objects (Maps, Lists, etc.).
-class ObjectCodable implements Codable<Object?> {
+class ObjectCodable implements Codable<Object?>, LazyDecodable<Object?> {
   const ObjectCodable();
 
   static SelfEncodable wrap(Object? value) {
@@ -20,7 +20,7 @@ class ObjectCodable implements Codable<Object?> {
       DecodingType.int => decoder.decodeInt(),
       DecodingType.double => decoder.decodeDouble(),
       DecodingType.bool => decoder.decodeBool(),
-      DecodingType.nil => null,
+      DecodingType.nil => (decoder.decodeIsNull(), null).$2,
       _ => decoder.decodeObjectOrNull(),
     };
   }
@@ -41,6 +41,42 @@ class ObjectCodable implements Codable<Object?> {
       list.add(decoder.decodeObject(using: this));
     }
     return list;
+  }
+
+  @override
+  void decodeLazy(LazyDecoder decoder, void Function(Object? value) resolve) {
+    decoder.whatsNext((type) {
+      switch (type) {
+        case DecodingType.keyed || DecodingType.mapped || DecodingType.map:
+          _decodeLazyMap(decoder, resolve);
+        case DecodingType.list || DecodingType.iterated:
+          _decodeLazyList(decoder, resolve);
+        default:
+          decoder.decodeObjectOrNull(resolve);
+      }
+    });
+  }
+
+  void _decodeLazyMap(LazyDecoder decoder, void Function(Object? value) resolve) {
+    final map = <String, Object?>{};
+    decoder.decodeKeyed((key, keyed) {
+      keyed.decodeObjectOrNull((value) {
+        map[key.toString()] = value;
+      }, using: this);
+    }, done: () {
+      resolve(map);
+    });
+  }
+
+  void _decodeLazyList(LazyDecoder decoder, void Function(Object? value) resolve) {
+    final list = <Object?>[];
+    decoder.decodeIterated((iterated) {
+      iterated.decodeObjectOrNull((value) {
+        list.add(value);
+      }, using: this);
+    }, done: () {
+      resolve(list);
+    });
   }
 
   @override
@@ -65,8 +101,6 @@ class ObjectCodable implements Codable<Object?> {
   }
 }
 
-
-
 extension AsNullableCodable<T> on Codable<T> {
   /// Returns a [Codable] that can encode and decode [T] or null.
   Codable<T?> get orNull => OrNullCodable<T>(this);
@@ -81,7 +115,6 @@ extension AsNullableListEncodable<T> on Encodable<T> {
   /// Returns an [Encodable] that can encode [T] or null.
   Encodable<T?> get orNull => OrNullEncodable<T>(this);
 }
-
 
 /// A [Codable] that can encode and decode [T] or null.
 ///

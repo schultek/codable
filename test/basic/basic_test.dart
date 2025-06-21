@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:codable_dart/extended.dart';
 import 'package:codable_dart/json.dart';
 import 'package:codable_dart/msgpack.dart';
 import 'package:codable_dart/standard.dart';
@@ -112,13 +113,43 @@ void main() {
       });
 
       test('decodes chunked json', () async {
-        var n = 1;
-        final stream = Person.codable.codec.fuse(json).fuse(utf8).decoder.bind(streamData(personTestJsonBytes, (char) {
-          return n++ % 100 == 0;
-        }));
+        final stream =
+            Person.codable.codec.fuse(json).fuse(utf8).decoder.bind(streamData(personTestJsonBytes, splitEveryN: 100));
 
         final Person p = await stream.single;
         expect(p, equals(expectedPerson));
+      });
+    });
+
+    group('lazily', () {
+      test("decodes from stream", () async {
+        final Person p = await Person.codable.fromJsonStream(streamData(personTestJsonBytes, splitEveryN: 100));
+        expect(p, equals(expectedPerson));
+      });
+
+      test("decodes from iterated stream", () async {
+        final stream = Person.codable.stream().fromJsonStream(streamData(personListTestJsonBytes, splitEveryN: 100));
+        await stream.listen((p) {
+          expect(p, equals(expectedPerson));
+        }).asFuture();
+      });
+
+      test("decodes with stream codec", () async {
+        final stream = Person.codable.codec
+            .fuse(json)
+            .fuse(utf8)
+            .decoder
+            .bind(streamData(personTestJsonBytes, splitEveryN: 100));
+        await stream.listen((p) {
+          expect(p, equals(expectedPerson));
+        }).asFuture();
+      });
+
+      test("decodes with chunked codec", () {
+        final sink = Person.codable.codec.fuse(json).fuse(utf8).decoder.startChunkedConversion(CallbackSink((p) {
+          expect(p, equals(expectedPerson));
+        }));
+        chunked(personTestJsonBytes, sink);
       });
     });
   });

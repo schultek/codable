@@ -8,7 +8,7 @@ extension AsAsyncCodable<T> on Codable<T> {
   Codable<Future<T>> future() => FutureCodable<T>(this);
 
   /// Returns a [Codable] that can encode and decode a stream of [T].
-  Codable<Stream<T>> stream() => StreamCodable<T>(this);
+  LazyCodable<Stream<T>> stream() => StreamCodable<T>(this);
 }
 
 extension AsAsyncDecodable<T> on Decodable<T> {
@@ -50,7 +50,7 @@ class FutureCodable<T> with _FutureDecodable<T> implements Codable<Future<T>>, C
 /// A [Codable] implementation that can decode a stream of [T].
 ///
 /// Prefer using [AsAsyncCodable.stream] instead of the constructor.
-class StreamCodable<T> with _StreamDecodable<T> implements Codable<Stream<T>>, ComposedDecodable1<Stream<T>, T> {
+class StreamCodable<T> with _StreamDecodable<T> implements LazyCodable<Stream<T>>, ComposedDecodable1<Stream<T>, T> {
   const StreamCodable(this.codable);
 
   @override
@@ -129,12 +129,17 @@ mixin _FutureDecodable<T> implements ComposedDecodable1<Future<T>, T> {
   }
 }
 
-mixin _StreamDecodable<T> implements ComposedDecodable1<Stream<T>, T> {
+mixin _StreamDecodable<T> implements ComposedDecodable1<Stream<T>, T>, LazyDecodable<Stream<T>> {
   Decodable<T> get codable;
 
   @override
   Stream<T> decode(Decoder decoder) {
     return decoder.decodeStream(using: codable);
+  }
+
+  @override
+  void decodeLazy(LazyDecoder decoder, void Function(Stream<T> value) resolve) {
+    resolve(decoder.decodeStream(using: codable));
   }
 
   @override
@@ -167,8 +172,10 @@ extension AsyncDecoder on Decoder {
     final next = whatsNext();
     if (next is DecodingType<Stream>) {
       return decodeObject<Stream<T>>(using: AsyncDecodable._stream<T>(using));
+    } else if (next case DecodingType.iterated || DecodingType.list) {
+      return Stream<T>.fromIterable(decodeList<T>(using: using));
     } else {
-      return Stream.value(decodeObject<T>(using: using));
+      return Stream<T>.value(decodeObject<T>(using: using));
     }
   }
 
@@ -205,6 +212,8 @@ extension AsyncMappedDecoder on MappedDecoder {
     final next = whatsNext(key, id: id);
     if (next is DecodingType<Stream>) {
       return decodeObject<Stream<T>>(key, id: id, using: AsyncDecodable._stream<T>(using));
+    } else if (next case DecodingType.iterated || DecodingType.list) {
+      return Stream<T>.fromIterable(decodeList<T>(key, id: id, using: using));
     } else {
       return Stream.value(decodeObject<T>(key, id: id, using: using));
     }
@@ -216,6 +225,37 @@ extension AsyncMappedDecoder on MappedDecoder {
       return null;
     }
     return decodeStream<T>(key, id: id, using: using);
+  }
+}
+
+extension AsyncLazyDecoder on LazyDecoder {
+  /// Decodes a [Future] of [T] using the provided [Decodable].
+  Future<T> decodeFuture<T>({Decodable<T>? using}) {
+    final completer = Completer<T>();
+    decodeObject(completer.complete, using: using);
+    return completer.future;
+  }
+
+  /// Decodes a [Stream] of [T] using the provided [Decodable].
+  Stream<T> decodeStream<T>({Decodable<T>? using}) {
+    final controller = StreamController<T>();
+    whatsNext((type) {
+      if (type case DecodingType.iterated || DecodingType.list) {
+        decodeIterated((decoder) {
+          decoder.decodeObject((v) {
+            controller.add(v);
+          }, using: using);
+        }, done: () {
+          controller.close();
+        });
+      } else {
+        decodeEager((decoder) async {
+          await controller.addStream(decoder.decodeStream<T>(using: using));
+          controller.close();
+        });
+      }
+    });
+    return controller.stream;
   }
 }
 

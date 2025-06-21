@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert' hide JsonDecoder, JsonEncoder;
 
 import 'package:codable_dart/core.dart';
@@ -34,4 +35,14 @@ class _JsonBytesDelegate extends CodableCodecDelegate<List<int>> {
 
   @override
   List<int> encode<T>(T input, Encodable<T> using) => JsonEncoder.encode(input, using: using);
+
+  @override
+  Sink<List<int>> startChunkedConversion<T>(Sink<T> sink, Decodable<T> decodable) {
+    return JsonDecoder.decodeLazy<T>(
+      sink.add,
+      decodable,
+      onError: sink is EventSink ? (sink as EventSink).addError : null,
+      onDone: sink.close,
+    );
+  }
 }

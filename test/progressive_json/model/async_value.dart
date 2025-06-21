@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:codable_dart/core.dart';
 import 'package:codable_dart/extended.dart';
-import 'package:codable_dart/src/extended/reference.dart';
 
 class AsyncValue<T> implements SelfEncodable {
   AsyncValue.value(T value) : _value = value, _isRef = false;
