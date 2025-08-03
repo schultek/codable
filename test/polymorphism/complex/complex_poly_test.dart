@@ -1,6 +1,5 @@
 import 'package:codable_dart/common.dart';
 import 'package:codable_dart/core.dart';
-import 'package:codable_dart/extended.dart';
 import 'package:codable_dart/standard.dart';
 import 'package:test/test.dart';
 
@@ -147,7 +146,7 @@ void main() {
       });
 
       test('decodes Boxes as Box<List<Data>> with explicit child decode', () {
-        final Codable<Box<List<Data>>> boxCodable = BoxCodable<List<Data>>().use(Data.codable.list());
+        final Codable<Box<List<Data>>> boxCodable = BoxCodable<List<Data>>(Data.codable.list());
         final Box<List<Data>> box = boxCodable.fromMap(boxesMap);
         expect(box, isA<Boxes<Data>>());
         expect(box.content, [
@@ -158,7 +157,7 @@ void main() {
       });
 
       test('decodes Boxes not as Box<List<String>> without explicit child decode', () {
-        final Codable<Box<List<String>>> boxCodable = BoxCodable<List<String>>().use();
+        final Codable<Box<List<String>>> boxCodable = BoxCodable<List<String>>();
 
         expect(
           () {
@@ -222,7 +221,7 @@ void main() {
       });
 
       test('decodes MetaBox as Box<Data> with explicit child decode', () {
-        final Codable<Box<Data>> boxCodable = BoxCodable<Data>().use(Data.codable);
+        final Codable<Box<Data>> boxCodable = BoxCodable<Data>(Data.codable);
         final Box<Data> box = boxCodable.fromMap(metaDataBoxMap);
         expect(box, isA<MetaBox<dynamic, Data>>());
         expect((box as MetaBox).metadata, 2);

@@ -6,6 +6,8 @@ abstract class Box<T> implements SelfEncodable {
 
   final T content;
 
+  static Codable<Box<T>> codable<T>([Codable<T>? codable]) => BoxCodable(codable);
+
   @override
   void encode(Encoder encoder, [Encodable<T>? encodableT]) {
     encoder.encodeKeyed()
@@ -121,8 +123,15 @@ class HigherOrderBox<T, B extends Box<T>> extends MetaBox<T, B> {
 // Codable implementations
 // =======================
 
-class BoxCodable<T> with SuperDecodable1<Box<T>, T> implements Codable1<Box<T>, T> {
-  const BoxCodable();
+class BoxCodable<T> with SuperDecodable<Box<T>> implements Codable<Box<T>>, ComposedDecodable1<Box<T>, T> {
+  const BoxCodable([Codable<T>? codableT])
+      : encodable = codableT,
+        decodable = codableT;
+
+  const BoxCodable.of({this.encodable, this.decodable});
+
+  final Encodable<T>? encodable;
+  final Decodable<T>? decodable;
 
   @override
   String get discriminatorKey => 'type';
@@ -136,17 +145,17 @@ class BoxCodable<T> with SuperDecodable1<Box<T>, T> implements Codable1<Box<T>, 
           return AnyBoxCodable();
         }),
         Discriminator.arg1Bounded<NumberBox, num>('number', <T extends num>(Decodable<T>? decodableT) {
-          return NumberBoxCodable<T>().useDecodable(decodableT);
+          return NumberBoxCodable<T>.of(decodable: decodableT);
         }),
         Discriminator.arg1Bounded<Boxes, List>('boxes', <T extends List>(Decodable<T>? decodableLT) {
           if (decodableLT case ComposedDecodable1 d) {
-            return d.extract<Decodable<Boxes>>(<T>(decodableT) => BoxesCodable<T>().useDecodable(decodableT));
+            return d.extract<Decodable<Boxes>>(<T>(decodableT) => BoxesCodable<T>.of(decodable: decodableT));
           } else {
             return BoxesCodable<dynamic>();
           }
         }),
         Discriminator.arg1<MetaBox>('meta', <T>(decodableT) {
-          return MetaBoxCodable<dynamic, T>().useDecodable(null, decodableT);
+          return MetaBoxCodable<dynamic, T>.of(decodableT: decodableT);
         }),
         ...Discriminator.chain1<MetaBox>(MetaBoxCodable().discriminators, <T>(d, decodableT) {
           return d.resolve2<MetaBox<dynamic, T>, dynamic, T>(null, decodableT);
@@ -154,8 +163,18 @@ class BoxCodable<T> with SuperDecodable1<Box<T>, T> implements Codable1<Box<T>, 
       ];
 
   @override
-  void encode(Box<T> value, Encoder encoder, [Encodable<T>? encodableT]) {
-    value.encode(encoder, encodableT);
+  Decodable<Box<T>> resolveDiscriminator(Discriminator discriminator) {
+    return discriminator.resolve1<Box<T>, T>(decodable);
+  }
+
+  @override
+  void encode(Box<T> value, Encoder encoder) {
+    value.encode(encoder, encodable);
+  }
+  
+  @override
+  R extract<R>(R Function<A>(Decodable<A>? decodableA) fn) {
+    return fn<T>(decodable);
   }
 }
 
@@ -176,7 +195,7 @@ class LabelBoxCodable implements Codable<LabelBox> {
 
 class AnyBoxCodable implements Codable<AnyBox> {
   @override
-  AnyBox decode(Decoder decoder, [Decodable<dynamic>? decodableT]) {
+  AnyBox decode(Decoder decoder) {
     final mapped = decoder.decodeMapped();
     return AnyBox(
       mapped.decodeObject('content'),
@@ -189,37 +208,68 @@ class AnyBoxCodable implements Codable<AnyBox> {
   }
 }
 
-class NumberBoxCodable<T extends num> implements Codable1<NumberBox<T>, T> {
+class NumberBoxCodable<T extends num> implements Codable<NumberBox<T>> {
+  const NumberBoxCodable([Codable<T>? codableT])
+      : encodable = codableT,
+        decodable = codableT;
+
+  const NumberBoxCodable.of({this.encodable, this.decodable});
+
+  final Encodable<T>? encodable;
+  final Decodable<T>? decodable;
+
   @override
-  NumberBox<T> decode(Decoder decoder, [Decodable<T>? decodableT]) {
+  NumberBox<T> decode(Decoder decoder) {
     final mapped = decoder.decodeMapped();
     return NumberBox<T>(
-      mapped.decodeObject('content', using: decodableT),
+      mapped.decodeObject('content', using: decodable),
     );
   }
 
   @override
-  void encode(NumberBox<T> value, Encoder encoder, [Encodable<T>? encodableT]) {
-    value.encode(encoder, encodableT);
+  void encode(NumberBox<T> value, Encoder encoder) {
+    value.encode(encoder, encodable);
   }
 }
 
-class BoxesCodable<T> implements Codable1<Boxes<T>, T> {
+class BoxesCodable<T> implements Codable<Boxes<T>> {
+  const BoxesCodable([Codable<T>? codableT])
+      : encodable = codableT,
+        decodable = codableT;
+
+  const BoxesCodable.of({this.encodable, this.decodable});
+
+  final Encodable<T>? encodable;
+  final Decodable<T>? decodable;
+
   @override
-  Boxes<T> decode(Decoder decoder, [Decodable<T>? decodableT]) {
+  Boxes<T> decode(Decoder decoder) {
     final mapped = decoder.decodeMapped();
     return Boxes<T>(
-      mapped.decodeList('content', using: decodableT),
+      mapped.decodeList('content', using: decodable),
     );
   }
 
   @override
-  void encode(Boxes<T> value, Encoder encoder, [Encodable<T>? encodableT]) {
-    value.encode(encoder, null, encodableT);
+  void encode(Boxes<T> value, Encoder encoder) {
+    value.encode(encoder, null, encodable);
   }
 }
 
-class MetaBoxCodable<V, T> with SuperDecodable2<MetaBox<V, T>, V, T> implements Codable2<MetaBox<V, T>, V, T> {
+class MetaBoxCodable<V, T> with SuperDecodable<MetaBox<V, T>> implements Codable<MetaBox<V, T>> {
+  const MetaBoxCodable([Codable<T>? codableT, Codable<V>? codableV])
+      : encodableT = codableT,
+        encodableV = codableV,
+        decodableT = codableT,
+        decodableV = codableV;
+
+  const MetaBoxCodable.of({this.encodableT, this.encodableV, this.decodableT, this.decodableV});
+
+  final Encodable<T>? encodableT;
+  final Encodable<V>? encodableV;
+  final Decodable<T>? decodableT;
+  final Decodable<V>? decodableV;
+
   @override
   String? get discriminatorKey => 'type';
 
@@ -228,13 +278,18 @@ class MetaBoxCodable<V, T> with SuperDecodable2<MetaBox<V, T>, V, T> implements 
         Discriminator.arg2Bounded<HigherOrderBox, dynamic, Box>(
           'higher_order',
           <T, B extends Box<T>>(Decodable<T>? decodableT, Decodable<B>? decodableB) {
-            return HigherOrderBoxCodable<T, B>().useDecodable(decodableT, decodableB);
+            return HigherOrderBoxCodable<T, B>.of(decodableT: decodableT, decodableB: decodableB);
           },
         ),
       ];
 
   @override
-  MetaBox<V, T> decodeFallback(Decoder decoder, [Decodable<V>? decodableV, Decodable<T>? decodableT]) {
+  Decodable<MetaBox<V, T>> resolveDiscriminator(Discriminator discriminator) {
+    return discriminator.resolve2<MetaBox<V, T>, V, T>(decodableV, decodableT);
+  }
+
+  @override
+  MetaBox<V, T> decodeFallback(Decoder decoder) {
     final mapped = decoder.decodeMapped();
     return MetaBox<V, T>(
       mapped.decodeObject('metadata', using: decodableV),
@@ -243,14 +298,27 @@ class MetaBoxCodable<V, T> with SuperDecodable2<MetaBox<V, T>, V, T> implements 
   }
 
   @override
-  void encode(MetaBox<V, T> value, Encoder encoder, [Encodable<V>? encodableV, Encodable<T>? encodableT]) {
+  void encode(MetaBox<V, T> value, Encoder encoder) {
     value.encode(encoder, encodableT, encodableV);
   }
 }
 
-class HigherOrderBoxCodable<T, B extends Box<T>> implements Codable2<HigherOrderBox<T, B>, T, B> {
+class HigherOrderBoxCodable<T, B extends Box<T>> implements Codable<HigherOrderBox<T, B>> {
+  const HigherOrderBoxCodable([Codable<T>? codableT, Codable<B>? codableB])
+      : encodableT = codableT,
+        encodableB = codableB,
+        decodableT = codableT,
+        decodableB = codableB;
+
+  const HigherOrderBoxCodable.of({this.encodableT, this.encodableB, this.decodableT, this.decodableB});
+
+  final Encodable<T>? encodableT;
+  final Encodable<B>? encodableB;
+  final Decodable<T>? decodableT;
+  final Decodable<B>? decodableB;
+
   @override
-  HigherOrderBox<T, B> decode(Decoder decoder, [Decodable<T>? decodableT, Decodable<B>? decodableB]) {
+  HigherOrderBox<T, B> decode(Decoder decoder) {
     final mapped = decoder.decodeMapped();
     return HigherOrderBox<T, B>(
       mapped.decodeObject('metadata', using: decodableT),
@@ -261,7 +329,7 @@ class HigherOrderBoxCodable<T, B extends Box<T>> implements Codable2<HigherOrder
   }
 
   @override
-  void encode(HigherOrderBox<T, B> value, Encoder encoder, [Encodable<T>? encodableT, Encodable<B>? encodableB]) {
+  void encode(HigherOrderBox<T, B> value, Encoder encoder) {
     value.encode(encoder, encodableB, encodableT);
   }
 }

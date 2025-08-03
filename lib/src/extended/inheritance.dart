@@ -20,44 +20,14 @@ abstract mixin class SuperDecodable<T> implements Decodable<T> {
   T decode(Decoder decoder) {
     final discriminator = findDiscriminator(decoder);
     if (discriminator != null) {
-      final decodable = discriminator.resolve<T>();
+      final decodable = resolveDiscriminator(discriminator);
       return decodable.decode(decoder);
     }
     return decodeFallback(decoder);
   }
-}
 
-abstract mixin class SuperDecodable1<T, A> implements SuperDecodable<T>, Decodable1<T, A> {
-  @override
-  T decodeFallback(Decoder decoder, [Decodable<A>? decodableA]) {
-    throw 'Fallback decode not implemented for $T.';
-  }
-
-  @override
-  T decode(Decoder decoder, [Decodable<A>? decodableA]) {
-    final discriminator = findDiscriminator(decoder);
-    if (discriminator != null) {
-      final decodable = discriminator.resolve1<T, A>(decodableA);
-      return decodable.decode(decoder);
-    }
-    return decodeFallback(decoder, decodableA);
-  }
-}
-
-abstract mixin class SuperDecodable2<T, A, B> implements SuperDecodable<T>, Decodable2<T, A, B> {
-  @override
-  T decodeFallback(Decoder decoder, [Decodable<A>? decodableA, Decodable<B>? decodableB]) {
-    throw 'Fallback decode not implemented for $T.';
-  }
-
-  @override
-  T decode(Decoder decoder, [Decodable<A>? decodableA, Decodable<B>? decodableB]) {
-    final discriminator = findDiscriminator(decoder);
-    if (discriminator != null) {
-      final decodable = discriminator.resolve2<T, A, B>(decodableA, decodableB);
-      return decodable.decode(decoder);
-    }
-    return decodeFallback(decoder, decodableA, decodableB);
+  Decodable<T> resolveDiscriminator(Discriminator discriminator) {
+     return discriminator.resolve<T>();
   }
 }
 
