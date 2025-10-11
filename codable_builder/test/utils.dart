@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:analyzer/dart/analysis/results.dart';
 import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:analyzer/dart/element/element2.dart';
-import 'package:analyzer/file_system/memory_file_system.dart';
 import 'package:codable_builder/codable_builder.dart';
 import 'package:code_builder/code_builder.dart';
 import 'package:dart_style/dart_style.dart';

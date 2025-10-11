@@ -6,9 +6,11 @@ import 'models/nodes.dart';
 abstract class CodableBuilder {
   const factory CodableBuilder() = CodableBuilderImpl;
 
-  Field buildStaticCodableField(CodableClassNode node);
+  Spec buildStaticCodableMember(CodableClassNode node);
 
   Method buildSelfEncodeMethod(CodableClassNode node);
+
+  Extension? buildGenericUseExtension(CodableClassNode node);
 
   Class buildCodableClass(CodableClassNode node);
 

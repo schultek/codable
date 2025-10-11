@@ -247,5 +247,73 @@ void main() {
             ''),
       );
     });
+
+    test('should build generic class', () {
+      final code = builder.buildCodableClass(
+        CodableClassNode(
+          name: 'Box',
+          url: 'package:test/box.dart',
+          fields: [
+            CodableFieldNode(name: 'content', key: 'content', type: ObjectCodableType('T')),
+          ],
+          typeParameters: [CodableTypeParameter(name: 'T')],
+        ),
+      );
+
+      expect(
+        emit(code),
+        equals('class BoxCodable<T> extends Codable<Box<T>> {\n'
+            '  const BoxCodable([Codable<T>? codableT])\n'
+            '    : encodableT = codableT,\n'
+            '      decodableT = codableT;\n'
+            '\n'
+            '  const BoxCodable.of({\n'
+            '    Encodable<T>? this.encodableT,\n'
+            '    Decodable<T>? this.decodableT,\n'
+            '  });\n'
+            '\n'
+            '  final Encodable<T>? encodableT;\n'
+            '\n'
+            '  final Decodable<T>? decodableT;\n'
+            '\n'
+            '  @override\n'
+            '  Box decode(Decoder decoder) {\n'
+            '    return switch (decoder.whatsNext()) {\n'
+            '      DecodingType.mapped ||\n'
+            '      DecodingType.map => _decodeMapped(decoder.decodeMapped()),\n'
+            '      DecodingType.keyed ||\n'
+            '      DecodingType.unknown => _decodeKeyed(decoder.decodeKeyed()),\n'
+            '      _ => decoder.expect(\'mapped or keyed\'),\n'
+            '    };\n'
+            '  }\n'
+            '\n'
+            '  Box _decodeMapped(MappedDecoder mapped) {\n'
+            '    return Box(mapped.decodeObject(\'content\', using: decodableT));\n'
+            '  }\n'
+            '\n'
+            '  Box _decodeKeyed(KeyedDecoder keyed) {\n'
+            '    late T content;\n'
+            '    for (Object? key; (key = keyed.nextKey()) != null;) {\n'
+            '      switch (key) {\n'
+            '        case \'content\':\n'
+            '          content = keyed.decodeObject(using: decodableT);\n'
+            '        default:\n'
+            '          keyed.skipCurrentValue();\n'
+            '      }\n'
+            '    }\n'
+            '\n'
+            '    return Box(content);\n'
+            '  }\n'
+            '\n'
+            '  @override\n'
+            '  void encode(Box value, Encoder encoder) {\n'
+            '    final keyed = encoder.encodeKeyed();\n'
+            '    keyed.encodeObject(\'content\', value.content, using: encodableT);\n'
+            '    keyed.end();\n'
+            '  }\n'
+            '}\n'
+            ''),
+      );
+    });
   });
 }

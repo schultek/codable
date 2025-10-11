@@ -1,6 +1,7 @@
+
 import 'package:codable_dart/core.dart';
 
-import 'delegate.dart';
+import 'generics.dart';
 
 extension CodableHookExtension<T> on Codable<T> {
   /// Returns a [Codable] that applies the provided [Hook] when encoding and decoding [T].
@@ -30,7 +31,7 @@ abstract mixin class Hook {
   void encode<T>(T value, Encoder encoder, Encodable<T> encodable) => encodable.encode(value, encoder);
 }
 
-class CodableHook<T> implements Codable<T> {
+class CodableHook<T> implements Codable<T>, ComposedDecodable<T> {
   const CodableHook(this.codable, this.hook);
 
   final Codable<T> codable;
@@ -45,10 +46,15 @@ class CodableHook<T> implements Codable<T> {
   void encode(T value, Encoder encoder) {
     hook.encode(value, encoder, codable);
   }
+  
+  @override
+  R unwrap<R>(R Function<A>(Decodable<A>? codable) fn) {
+    return fn<T>(codable);
+  }
 }
 
-class CodableWithHooks<T> implements Codable<T> {
-  CodableWithHooks(Codable<T> codable, Hook hook, Hook? superHook) : _codable = codable.hook(hook).maybeHook(superHook);
+class CodableWithHooks<T> implements Codable<T>, ComposedDecodable<T> {
+  CodableWithHooks(Codable<T> codable, Hook hook, [Hook? superHook]) : _codable = codable.hook(hook).maybeHook(superHook);
 
   CodableWithHooks.inherited(Codable<T> codable, Hook hook) : _codable = codable.hook(hook);
 
@@ -63,45 +69,9 @@ class CodableWithHooks<T> implements Codable<T> {
   void encode(T value, Encoder encoder) {
     _codable.encode(value, encoder);
   }
-}
-
-abstract mixin class ProxyHook implements Hook {
+  
   @override
-  T decode<T>(Decoder decoder, Decodable<T> decodable) {
-    return decodable.decode(ProxyDecoder(decoder, this));
-  }
-
-  String visitString(String value) => value;
-  String? visitStringOrNull(String? value) => value;
-
-  @override
-  void encode<T>(T value, Encoder encoder, Encodable<T> encodable) {
-    encoder.encodeObject(value, using: encodable);
-  }
-}
-
-class ProxyDecoder extends RecursiveDelegatingDecoder {
-  ProxyDecoder(super.wrapped, this.hook);
-
-  final ProxyHook hook;
-
-  @override
-  String decodeString() {
-    return hook.visitString(super.decodeString());
-  }
-
-  @override
-  String? decodeStringOrNull() {
-    return hook.visitStringOrNull(super.decodeStringOrNull());
-  }
-
-  @override
-  Decoder clone() {
-    return ProxyDecoder(delegate.clone(), hook);
-  }
-
-  @override
-  ProxyDecoder wrap(Decoder decoder) {
-    return ProxyDecoder(decoder, hook);
+  R unwrap<R>(R Function<A>(Decodable<A>? codable) fn) {
+    return fn<T>(_codable);
   }
 }

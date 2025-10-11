@@ -22,6 +22,7 @@ extension ClassElement2Extension on ClassElement2 {
       url: firstFragment.libraryFragment.source.uri.toString(),
       isSelfEncodable: isSelfEncodable,
       constructorName: constructorName,
+      typeParameters: typeParameters2.map((t) => t.toNode()).toList(),
       fields: fields2.map((f) => f.toNode()).toList(),
     );
   }
@@ -35,6 +36,15 @@ extension FieldElement2Extension on FieldElement2 {
       type: type.toCodableType(),
       id: null, // TODO: Handle field IDs.
       isNamed: true, // TODO: Get this from the constructor.
+    );
+  }
+}
+
+extension TypeParameterElement2Extension on TypeParameterElement2 {
+  CodableTypeParameter toNode() {
+    return CodableTypeParameter(
+      name: name3 ?? '',
+      bound: bound?.toCodableType(),
     );
   }
 }

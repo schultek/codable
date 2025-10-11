@@ -1,8 +1,6 @@
 import 'package:codable_dart/core.dart';
 import 'package:codable_dart/extended.dart';
 
-import '../../../hooks/hooks.dart';
-
 class Pet implements SelfEncodable {
   Pet({required this.type});
 
@@ -64,7 +62,7 @@ class PetCodable extends SelfCodable<Pet> with SuperDecodable<Pet> {
 
   @override
   List<Discriminator<Pet>> get discriminators => [
-        Discriminator<Cat>('cat', CatCodable.inherited),
+        Discriminator<Cat>('cat', CatCodable.new),
         Discriminator<Dog>('dog', DogCodable.new),
       ];
 
@@ -74,18 +72,8 @@ class PetCodable extends SelfCodable<Pet> with SuperDecodable<Pet> {
   }
 }
 
-class PetHook with Hook {
-  const PetHook();
-}
-
-class CatCodable extends CodableWithHooks<Cat> {
-  CatCodable() : super(const _CatCodable(), const PetHook(), const PetHook());
-
-  CatCodable.inherited() : super.inherited(const _CatCodable(), const PetHook());
-}
-
-class _CatCodable extends SelfCodable<Cat> {
-  const _CatCodable();
+class CatCodable extends SelfCodable<Cat> {
+  const CatCodable();
 
   @override
   Cat decode(Decoder decoder) {

@@ -148,11 +148,8 @@ class BoxCodable<T> with SuperDecodable<Box<T>> implements Codable<Box<T>>, Comp
           return NumberBoxCodable<T>.of(decodable: decodableT);
         }),
         Discriminator.arg1Bounded<Boxes, List>('boxes', <T extends List>(Decodable<T>? decodableLT) {
-          if (decodableLT case ComposedDecodable1 d) {
-            return d.extract<Decodable<Boxes>>(<T>(decodableT) => BoxesCodable<T>.of(decodable: decodableT));
-          } else {
-            return BoxesCodable<dynamic>();
-          }
+          return decodableLT
+              .extractArg1<Decodable<Boxes>>(<T>(decodableT) => BoxesCodable<T>.of(decodable: decodableT));
         }),
         Discriminator.arg1<MetaBox>('meta', <T>(decodableT) {
           return MetaBoxCodable<dynamic, T>.of(decodableT: decodableT);
@@ -171,7 +168,7 @@ class BoxCodable<T> with SuperDecodable<Box<T>> implements Codable<Box<T>>, Comp
   void encode(Box<T> value, Encoder encoder) {
     value.encode(encoder, encodable);
   }
-  
+
   @override
   R extract<R>(R Function<A>(Decodable<A>? decodableA) fn) {
     return fn<T>(decodable);

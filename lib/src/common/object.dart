@@ -119,7 +119,7 @@ extension AsNullableListEncodable<T> on Encodable<T> {
 /// A [Codable] that can encode and decode [T] or null.
 ///
 /// Prefer using [AsNullableCodable.orNull] instead of the constructor.
-class OrNullCodable<T> with _OrNullDecodable<T> implements Codable<T?>, ComposedDecodable1<T?, T> {
+class OrNullCodable<T> with _OrNullDecodable<T> implements Codable<T?>, ComposedDecodable<T?> {
   const OrNullCodable(this.codable);
 
   @override
@@ -131,7 +131,7 @@ class OrNullCodable<T> with _OrNullDecodable<T> implements Codable<T?>, Composed
   }
 
   @override
-  R extract<R>(R Function<A>(Codable<A>? codableA) fn) {
+  R unwrap<R>(R Function<A>(Decodable<A>? codableA) fn) {
     return fn<T>(codable);
   }
 }
@@ -139,7 +139,7 @@ class OrNullCodable<T> with _OrNullDecodable<T> implements Codable<T?>, Composed
 /// A [Decodable] implementation that can decode [T] or null.
 ///
 /// Prefer using [AsNullableDecodable.orNull] instead of the constructor.
-class OrNullDecodable<T> with _OrNullDecodable<T> implements ComposedDecodable1<T?, T> {
+class OrNullDecodable<T> with _OrNullDecodable<T> implements ComposedDecodable<T?> {
   const OrNullDecodable(this.codable);
 
   @override
@@ -160,7 +160,7 @@ class OrNullEncodable<T> implements Encodable<T?> {
   }
 }
 
-mixin _OrNullDecodable<T> implements ComposedDecodable1<T?, T> {
+mixin _OrNullDecodable<T> implements ComposedDecodable<T?> {
   Decodable<T> get codable;
 
   @override
@@ -172,7 +172,7 @@ mixin _OrNullDecodable<T> implements ComposedDecodable1<T?, T> {
   }
 
   @override
-  R extract<R>(R Function<A>(Decodable<A>? codableA) fn) {
+  R unwrap<R>(R Function<A>(Decodable<A>? codableA) fn) {
     return fn<T>(codable);
   }
 }

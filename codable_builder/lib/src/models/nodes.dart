@@ -9,6 +9,7 @@ class CodableClassNode {
     required this.url,
     this.isSelfEncodable = false,
     this.constructorName,
+    this.typeParameters = const [],
     required this.fields,
   });
 
@@ -19,6 +20,7 @@ class CodableClassNode {
   final bool isSelfEncodable;
 
   final String? constructorName;
+  final List<CodableTypeParameter> typeParameters;
   final List<CodableFieldNode> fields;
 }
 
@@ -36,6 +38,18 @@ class CodableFieldNode {
   final CodableType type;
   final int? id;
   final bool isNamed;
+}
+
+class CodableTypeParameter {
+  CodableTypeParameter({
+    required this.name,
+    this.bound,
+  });
+
+  final String name;
+  final CodableType? bound;
+
+  String get declaration => bound != null ? '$name extends ${bound!.reference}' : name;
 }
 
 class CodableEnumNode {

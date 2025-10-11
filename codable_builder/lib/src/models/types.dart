@@ -29,9 +29,9 @@ sealed class CodableType {
 
 class ObjectCodableType extends CodableType {
   final String name;
-  final String url;
+  final String? url;
 
-  const ObjectCodableType(this.name, this.url, super.isNullable, super.using);
+  const ObjectCodableType(this.name, [this.url, super.isNullable = false, super.using]);
 
   const ObjectCodableType.core(this.name, [super.isNullable = false]) : url = dartCoreUrl;
 

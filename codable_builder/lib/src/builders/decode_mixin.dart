@@ -1,7 +1,7 @@
 part of 'codable_builder.dart';
 
 abstract mixin class DecodeMixin implements CodableBuilder {
-  String _buildDecodingInvocation(CodableFieldNode node, {required bool includeKey}) {
+  String _buildDecodingInvocation(CodableFieldNode node, CodableClassNode clazz, {required bool includeKey}) {
     final suffix = node.type.isNullable ? 'OrNull' : '';
     final name = switch (node.type) {
       ObjectCodableType t when t.using != null => 'decodeObject$suffix',
@@ -16,6 +16,7 @@ abstract mixin class DecodeMixin implements CodableBuilder {
     };
     final args = switch (node.type) {
       ObjectCodableType t when t.using != null => ['using: ${t.using}'],
+      ObjectCodableType t when clazz.typeParameters.any((tp) => tp.name == t.name) => ['using: decodable${t.name}'],
       ListCodableType t when t.itemType.using != null => ['using: ${t.itemType.using}'],
       MapCodableType t => [
           if (t.keyType.using != null) 'keyUsing: ${t.keyType.using}',

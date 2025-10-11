@@ -8,11 +8,99 @@ abstract mixin class ClassBuilderMixin implements EncodeMixin, DecodeMixin, Coda
       b.extend = TypeReference((b) {
         b.symbol = node.isSelfEncodable ? 'SelfCodable' : 'Codable';
         b.url = codableCoreUrl;
-        b.types.add(refer(node.name, node.url));
+        b.types.add(TypeReference((b) {
+          b.symbol = node.name;
+          b.url = node.url;
+          b.types.addAll(node.typeParameters.map((t) => refer(t.name)));
+        }));
       });
       b.constructors.add(Constructor((b) {
         b.constant = true;
+        if (node.typeParameters.isNotEmpty) {
+          b.optionalParameters.addAll(node.typeParameters.map((t) {
+            return Parameter((b) {
+              b.name = 'codable${t.name}';
+              b.type = TypeReference((b) {
+                b.symbol = 'Codable';
+                b.url = codableCoreUrl;
+                b.types.add(refer(t.name));
+                b.isNullable = true;
+              });
+            });
+          }));
+          b.initializers.addAll(node.typeParameters.expand((t) {
+            return [
+              Code('encodable${t.name} = codable${t.name}'),
+              Code('decodable${t.name} = codable${t.name}'),
+            ];
+          }));
+        }
       }));
+
+      if (node.typeParameters.isNotEmpty) {
+        b.constructors.add(Constructor((b) {
+          b.name = 'of';
+          b.constant = true;
+          b.optionalParameters.addAll(node.typeParameters.expand((t) {
+            return [
+              Parameter((b) {
+                b.name = 'encodable${t.name}';
+                b.type = TypeReference((b) {
+                  b.symbol = 'Encodable';
+                  b.url = codableCoreUrl;
+                  b.types.add(refer(t.name));
+                  b.isNullable = true;
+                });
+                b.named = true;
+                b.toThis = true;
+              }),
+              Parameter((b) {
+                b.name = 'decodable${t.name}';
+                b.type = TypeReference((b) {
+                  b.symbol = 'Decodable';
+                  b.url = codableCoreUrl;
+                  b.types.add(refer(t.name));
+                  b.isNullable = true;
+                });
+                b.named = true;
+                b.toThis = true;
+              })
+            ];
+          }));
+        }));
+
+        b.types.addAll(node.typeParameters.map((t) {
+          return TypeReference((b) {
+            b.symbol = t.name;
+            b.bound = t.bound?.reference;
+          });
+        }));
+
+        b.fields.addAll(node.typeParameters.expand((t) {
+          return [
+            Field((b) {
+              b.name = 'encodable${t.name}';
+              b.type = TypeReference((b) {
+                b.symbol = 'Encodable';
+                b.url = codableCoreUrl;
+                b.types.add(refer(t.name));
+                b.isNullable = true;
+              });
+              b.modifier = FieldModifier.final$;
+            }),
+            Field((b) {
+              b.name = 'decodable${t.name}';
+              b.type = TypeReference((b) {
+                b.symbol = 'Decodable';
+                b.url = codableCoreUrl;
+                b.types.add(refer(t.name));
+                b.isNullable = true;
+              });
+              b.modifier = FieldModifier.final$;
+            })
+          ];
+        }));
+      }
 
       b.methods.add(Method((b) {
         b.name = 'decode';
@@ -43,7 +131,7 @@ abstract mixin class ClassBuilderMixin implements EncodeMixin, DecodeMixin, Coda
         b.body = Block((b) {
           final constructor = node.constructorName != null ? '${node.name}.${node.constructorName}' : node.name;
           final returnStatement = 'return $constructor(${node.fields.map((f) {
-            return '${f.isNamed ? '${f.name}: ' : ''}mapped.${_buildDecodingInvocation(f, includeKey: true)}';
+            return '${f.isNamed ? '${f.name}: ' : ''}mapped.${_buildDecodingInvocation(f, node, includeKey: true)}';
           }).join(', ')});';
           b.statements.add(Code(returnStatement));
         });
@@ -67,7 +155,7 @@ abstract mixin class ClassBuilderMixin implements EncodeMixin, DecodeMixin, Coda
             for (Object? key; (key = keyed.nextKey()) != null;) {
               switch (key) {
                 ${node.fields.map((f) {
-            return 'case \'${f.key}\'${f.id != null ? ' || ${f.id}' : ''}: ${f.name} = keyed.${_buildDecodingInvocation(f, includeKey: false)};';
+            return 'case \'${f.key}\'${f.id != null ? ' || ${f.id}' : ''}: ${f.name} = keyed.${_buildDecodingInvocation(f, node, includeKey: false)};';
           }).join('\n')}
                 default:
                   keyed.skipCurrentValue();
@@ -99,7 +187,7 @@ abstract mixin class ClassBuilderMixin implements EncodeMixin, DecodeMixin, Coda
             b.statements.add(Code('''
             final keyed = encoder.encodeKeyed();
             ${node.fields.map((f) {
-              return 'keyed.${_buildEncodingInvocation(f, value: 'value')};';
+              return 'keyed.${_buildEncodingInvocation(f, node, value: 'value')};';
             }).join('\n')}
             keyed.end();
           '''));

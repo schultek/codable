@@ -5,3 +5,4 @@ export 'src/extended/inheritance.dart';
 export 'src/extended/async.dart';
 export 'src/extended/lazy.dart';
 export 'src/extended/reference.dart';
+export 'src/extended/hooks.dart';
