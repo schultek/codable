@@ -5,6 +5,10 @@ import 'delegate.dart';
 extension CodableHookExtension<T> on Codable<T> {
   /// Returns a [Codable] that applies the provided [Hook] when encoding and decoding [T].
   Codable<T> hook(Hook hook) => CodableHook(this, hook);
+
+  /// If hook is not null, returns a [Codable] that applies the provided [Hook] when encoding and decoding [T].
+  /// Else returns this.
+  Codable<T> maybeHook(Hook? hook) => hook == null ? this : CodableHook(this, hook);
 }
 
 /// An object that can be used to modify the encoding and decoding behavior of a type of data format.
@@ -40,6 +44,24 @@ class CodableHook<T> implements Codable<T> {
   @override
   void encode(T value, Encoder encoder) {
     hook.encode(value, encoder, codable);
+  }
+}
+
+class CodableWithHooks<T> implements Codable<T> {
+  CodableWithHooks(Codable<T> codable, Hook hook, Hook? superHook) : _codable = codable.hook(hook).maybeHook(superHook);
+
+  CodableWithHooks.inherited(Codable<T> codable, Hook hook) : _codable = codable.hook(hook);
+
+  final Codable<T> _codable;
+
+  @override
+  T decode(Decoder decoder) {
+    return _codable.decode(decoder);
+  }
+
+  @override
+  void encode(T value, Encoder encoder) {
+    _codable.encode(value, encoder);
   }
 }
 
