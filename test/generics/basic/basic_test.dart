@@ -14,7 +14,7 @@ void main() {
     group('basic', () {
       test('decodes a box of dynamic', () {
         // By default, the codable for a generic class is dynamic.
-        final Box<dynamic> decoded = Box.codable.fromJson(boxStringJson);
+        final Box<dynamic> decoded = Box.codable().fromJson(boxStringJson);
         expect(decoded.label, 'name');
         expect(decoded.data, 'John');
       });

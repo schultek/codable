@@ -1,5 +1,4 @@
 import 'package:codable_dart/core.dart';
-import 'package:codable_dart/extended.dart';
 
 class Box<T> implements SelfEncodable {
   Box(this.label, this.data);
@@ -7,7 +6,7 @@ class Box<T> implements SelfEncodable {
   final String label;
   final T data;
 
-  static const Codable1<Box, dynamic> codable = BoxCodable();
+  static Codable<Box<T>> codable<T>([Codable<T>? codable]) => BoxCodable(codable);
 
   @override
   void encode(Encoder encoder, [Encodable<T>? encodableT]) {
@@ -24,26 +23,28 @@ extension BoxEncodableExtension<T> on Box<T> {
   }
 }
 
-class BoxCodable<T> extends Codable1<Box<T>, T> {
-  const BoxCodable();
+class BoxCodable<T> extends Codable<Box<T>> {
+  const BoxCodable([Codable<T>? codableT])
+      : encodable = codableT,
+        decodable = codableT;
+
+  const BoxCodable.of({this.encodable, this.decodable});
+
+  final Encodable<T>? encodable;
+  final Decodable<T>? decodable;
 
   @override
-  void encode(Box<T> value, Encoder encoder, [Encodable<T>? encodableA]) {
-    value.encode(encoder, encodableA);
+  void encode(Box<T> value, Encoder encoder) {
+    value.encode(encoder, encodable);
   }
 
   @override
-  Box<T> decode(Decoder decoder, [Decodable<T>? decodableT]) {
+  Box<T> decode(Decoder decoder) {
     // For simplicity, we don't check the decoder.whatsNext() here. Don't do this for real implementations.
     final mapped = decoder.decodeMapped();
     return Box(
       mapped.decodeString('label'),
-      mapped.decodeObject('data', using: decodableT),
+      mapped.decodeObject('data', using: decodable),
     );
   }
-}
-
-extension BoxCodableExtension on Codable1<Box, dynamic> {
-  // This is a convenience method for creating a BoxCodable with an explicit child codable.
-  Codable<Box<$A>> call<$A>([Codable<$A>? codableA]) => BoxCodable<$A>().use(codableA);
 }

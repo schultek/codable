@@ -61,29 +61,31 @@ extension AsyncEncodableExtension<T> on AsyncValue<T> {
 
 extension AsAsyncCodable<T> on Codable<T> {
   /// Returns a [Codable] that can encode and decode an [AsyncValue] of [T].
-  Codable<AsyncValue<T>> async() => AsyncCodable<T>().use(this);
+  Codable<AsyncValue<T>> async() => AsyncCodable<T>(this);
 }
 
-class AsyncCodable<T> extends Codable1<AsyncValue<T>, T> {
-  const AsyncCodable();
+class AsyncCodable<T> extends Codable<AsyncValue<T>> {
+  const AsyncCodable([Codable<T>? codableT])
+      : encodable = codableT,
+        decodable = codableT;
+
+  const AsyncCodable.of({this.encodable, this.decodable});
+
+  final Encodable<T>? encodable;
+  final Decodable<T>? decodable;
 
   @override
-  void encode(AsyncValue<T> value, Encoder encoder, [Encodable<T>? encodableA]) {
-    value.encode(encoder, encodableA);
+  void encode(AsyncValue<T> value, Encoder encoder) {
+    value.encode(encoder, encodable);
   }
 
   @override
-  AsyncValue<T> decode(Decoder decoder, [Decodable<T>? decodableT]) {
+  AsyncValue<T> decode(Decoder decoder) {
     final next = decoder.whatsNext();
     if (next is DecodingType<Future> || next is DecodingType<Stream>) {
-      return AsyncValue.future(decoder.decodeFuture<T>(using: decodableT));
+      return AsyncValue.future(decoder.decodeFuture<T>(using: decodable));
     } else {
-      return AsyncValue.value(decoder.decodeObject<T>(using: decodableT));
+      return AsyncValue.value(decoder.decodeObject<T>(using: decodable));
     }
   }
-}
-
-extension AsyncCodableExtension on Codable1<AsyncValue, dynamic> {
-  // This is a convenience method for creating a AsyncCodable with an explicit child codable.
-  Codable<AsyncValue<$A>> call<$A>([Codable<$A>? codableA]) => AsyncCodable<$A>().use(codableA);
 }
