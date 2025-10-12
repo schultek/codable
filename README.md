@@ -126,13 +126,14 @@ assert(map == source);
 
 See the full documentation here or jump directly to the topic you are looking for:
 
-- [Codable]() explains how to implement the `Codable` and `SelfCodable` interfaces and work with `Decoder`s and `Encoders`.
-- [Collections]() show how to work with `List`s and `Map`s.
-- [Third-Party Types]() show how to work with third-party types like `Uri`, `DateTime` etc.
-- [Formats]() gives an overview of the available data formats.
+- [Models]() show how to encode and decode models and other types, including collections and third-party types.
+- [Formats]() gives an overview of the out-of-the-box data formats.
+- [Types]() gives an overview of the out-of-the-box supported data types.
+- [Codable]() explains how to implement the `Codable` and `SelfCodable` interfaces and work with `Decoder`s and `Encoder`s.
 - [Enums]() show how to work with enums.
 - [Generics]() describe how to work with generic classes.
 - [Polymorphism & Inheritance]() describe how inherited classes work with the codable API.
+- [Codec]() explain how to use the Codec API with this package.
 - [Hooks]() explain how to use hooks while decoding and encoding.
 
 ## Package libraries
@@ -143,8 +144,6 @@ Top-level libraries you can import from the package:
 - `package:codable/extended.dart` — optional extended features (generics, polymorphism, hooks, lazy/async, references).
 - `package:codable/standard.dart` — compact, standard format implementation used by the core API.
 - `package:codable/common.dart` — helpers and adapters for built-in Dart types (DateTime, Uri, Map, Iterable, Object helpers).
-
-Internals and additional helpers live under `lib/src/` and code generation tooling is provided in the `codable_builder/` folder.
 
 ## Formats
 
@@ -168,8 +167,6 @@ Codable provides optional, extended features for real-world modeling needs:
 - Hooks and lifecycle — pre/post hooks to transform or validate values during (de)serialization.
 - Lazy / async values — built-in support for values that are resolved asynchronously or on-demand.
 - Reference handling — encode/decode references to the same object to preserve graph structure.
-
-These are implemented in `lib/src/extended` and demonstrated in the `test/` suite.
 
 ## Performance
 

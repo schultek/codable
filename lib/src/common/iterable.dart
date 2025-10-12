@@ -49,7 +49,7 @@ extension AsIterableEncodable<T extends SelfEncodable> on Iterable<T> {
   /// This let's you use any format extensions directly on a [List] of [Encodable]s:
   /// ```dart
   /// final Iterable<Person> people = ...;
-  /// final String json = people.encodable.toJson();
+  /// final String json = people.encode.toJson();
   /// ```
   SelfEncodable get encode => IterableSelfEncodable(this);
 }

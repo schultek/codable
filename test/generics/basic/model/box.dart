@@ -25,17 +25,17 @@ extension BoxEncodableExtension<T> on Box<T> {
 
 class BoxCodable<T> extends Codable<Box<T>> {
   const BoxCodable([Codable<T>? codableT])
-      : encodable = codableT,
-        decodable = codableT;
+      : encodableT = codableT,
+        decodableT = codableT;
 
-  const BoxCodable.of({this.encodable, this.decodable});
+  const BoxCodable.of({this.encodableT, this.decodableT});
 
-  final Encodable<T>? encodable;
-  final Decodable<T>? decodable;
+  final Encodable<T>? encodableT;
+  final Decodable<T>? decodableT;
 
   @override
   void encode(Box<T> value, Encoder encoder) {
-    value.encode(encoder, encodable);
+    value.encode(encoder, encodableT);
   }
 
   @override
@@ -44,7 +44,7 @@ class BoxCodable<T> extends Codable<Box<T>> {
     final mapped = decoder.decodeMapped();
     return Box(
       mapped.decodeString('label'),
-      mapped.decodeObject('data', using: decodable),
+      mapped.decodeObject('data', using: decodableT),
     );
   }
 }
