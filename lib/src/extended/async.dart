@@ -30,7 +30,7 @@ extension AsFutureEncodable<T> on Encodable<T> {
 /// A [Codable] that can encode and decode a future of [E].
 ///
 /// Prefer using [AsAsyncCodable.future] instead of the constructor.
-class FutureCodable<T> with _FutureDecodable<T> implements Codable<Future<T>>, ComposedDecodable1<Future<T>, T> {
+class FutureCodable<T> with _FutureDecodable<T> implements Codable<Future<T>>, ComposedDecodable1<Future<T>> {
   const FutureCodable(this.codable);
 
   @override
@@ -50,7 +50,7 @@ class FutureCodable<T> with _FutureDecodable<T> implements Codable<Future<T>>, C
 /// A [Codable] implementation that can decode a stream of [T].
 ///
 /// Prefer using [AsAsyncCodable.stream] instead of the constructor.
-class StreamCodable<T> with _StreamDecodable<T> implements LazyCodable<Stream<T>>, ComposedDecodable1<Stream<T>, T> {
+class StreamCodable<T> with _StreamDecodable<T> implements LazyCodable<Stream<T>>, ComposedDecodable1<Stream<T>> {
   const StreamCodable(this.codable);
 
   @override
@@ -70,7 +70,7 @@ class StreamCodable<T> with _StreamDecodable<T> implements LazyCodable<Stream<T>
 /// A [Decodable] implementation that can decode a future of [T].
 ///
 /// Prefer using [AsAsyncDecodable.future] instead of the constructor.
-class FutureDecodable<T> with _FutureDecodable<T> implements ComposedDecodable1<Future<T>, T> {
+class FutureDecodable<T> with _FutureDecodable<T> implements ComposedDecodable1<Future<T>> {
   const FutureDecodable(this.codable);
 
   @override
@@ -80,7 +80,7 @@ class FutureDecodable<T> with _FutureDecodable<T> implements ComposedDecodable1<
 /// A [Decodable] implementation that can decode a stream of [T].
 ///
 /// Prefer using [AsAsyncDecodable.stream] instead of the constructor.
-class StreamDecodable<T> with _StreamDecodable<T> implements ComposedDecodable1<Stream<T>, T> {
+class StreamDecodable<T> with _StreamDecodable<T> implements ComposedDecodable1<Stream<T>> {
   const StreamDecodable(this.codable);
 
   @override
@@ -115,7 +115,7 @@ class StreamEncodable<T> implements Encodable<Stream<T>> {
   }
 }
 
-mixin _FutureDecodable<T> implements ComposedDecodable1<Future<T>, T> {
+mixin _FutureDecodable<T> implements ComposedDecodable1<Future<T>> {
   Decodable<T> get codable;
 
   @override
@@ -129,7 +129,7 @@ mixin _FutureDecodable<T> implements ComposedDecodable1<Future<T>, T> {
   }
 }
 
-mixin _StreamDecodable<T> implements ComposedDecodable1<Stream<T>, T>, LazyDecodable<Stream<T>> {
+mixin _StreamDecodable<T> implements ComposedDecodable1<Stream<T>>, LazyDecodable<Stream<T>> {
   Decodable<T> get codable;
 
   @override
@@ -348,7 +348,7 @@ final class AsyncEncodable<R, T> implements Encodable<R> {
   }
 }
 
-final class AsyncDecodable<R, T> implements ComposedDecodable1<R, T> {
+final class AsyncDecodable<R, T> implements ComposedDecodable1<R> {
   AsyncDecodable._(this.target, {this.using});
 
   static AsyncDecodable<Stream<T>, T> _stream<T>(Decodable<T>? using) {

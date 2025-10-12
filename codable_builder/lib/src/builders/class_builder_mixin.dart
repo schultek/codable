@@ -1,10 +1,21 @@
 part of 'codable_builder.dart';
 
-abstract mixin class ClassBuilderMixin implements EncodeMixin, DecodeMixin, CodableBuilder {
+abstract mixin class ClassBuilderMixin implements EncodeMixin, DecodeMixin, CodableBuilder, PolymorphicMixin {
   @override
   Class buildCodableClass(CodableClassNode node) {
     return Class((b) {
       b.name = '${node.name}Codable';
+      if (node.subclasses.isNotEmpty) {
+        b.mixins.add(TypeReference((b) {
+          b.symbol = 'SuperDecodable';
+          b.url = codableExtendedUrl;
+          b.types.add(TypeReference((b) {
+            b.symbol = node.name;
+            b.url = node.url;
+            b.types.addAll(node.typeParameters.map((t) => refer(t.name)));
+          }));
+        }));
+      }
       b.extend = TypeReference((b) {
         b.symbol = node.isSelfEncodable ? 'SelfCodable' : 'Codable';
         b.url = codableCoreUrl;
@@ -14,6 +25,17 @@ abstract mixin class ClassBuilderMixin implements EncodeMixin, DecodeMixin, Coda
           b.types.addAll(node.typeParameters.map((t) => refer(t.name)));
         }));
       });
+      if (node.typeParameters.isNotEmpty && node.typeParameters.length <= 2) {
+        b.implements.add(TypeReference((b) {
+          b.symbol = 'ComposedDecodable${node.typeParameters.length}';
+          b.url = codableExtendedUrl;
+          b.types.add(TypeReference((b) {
+            b.symbol = node.name;
+            b.url = node.url;
+            b.types.addAll(node.typeParameters.map((t) => refer(t.name)));
+          }));
+        }));
+      }
       b.constructors.add(Constructor((b) {
         b.constant = true;
         if (node.typeParameters.isNotEmpty) {
@@ -100,6 +122,40 @@ abstract mixin class ClassBuilderMixin implements EncodeMixin, DecodeMixin, Coda
             })
           ];
         }));
+
+        if (node.typeParameters.length <= 2) {
+          b.methods.add(Method((b) {
+            b.name = 'extract';
+            b.returns = refer('R');
+            b.annotations.add(refer('override', dartCoreUrl));
+            b.types.add(refer('R'));
+            b.requiredParameters.add(Parameter((b) {
+              b.name = 'fn';
+              b.type = FunctionType((b) {
+                b.returnType = refer('R');
+                for (final (index, _) in node.typeParameters.indexed) {
+                  final n = String.fromCharCode('A'.codeUnitAt(0) + index);
+                  b.types.add(refer(n));
+                  b.requiredParameters.add(TypeReference((b) {
+                    b.symbol = 'Decodable';
+                    b.url = codableCoreUrl;
+                    b.types.add(refer(n));
+                    b.isNullable = true;
+                  }));
+                }
+              });
+            }));
+            b.body = Block((b) {
+              final args = node.typeParameters.map((t) => 'decodable${t.name}').join(', ');
+              b.statements.add(Code('return fn<${node.typeParameters.map((t) => t.name).join(', ')}>($args);'));
+            });
+          }));
+        }
+      }
+
+      if (node.subclasses.isNotEmpty) {
+        b.methods.add(_buildDiscriminatorKey(node));
+        b.methods.add(_buildDiscriminators(node));
       }
 
       b.methods.add(Method((b) {

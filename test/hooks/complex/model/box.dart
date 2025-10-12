@@ -47,7 +47,7 @@ class BoxCodable<T> extends CodableWithHooks<Box<T>> {
       : super(_BoxCodable.of(encodable: encodable, decodable: decodable), const BoxHook());
 }
 
-class _BoxCodable<T> with SuperDecodable<Box<T>> implements Codable<Box<T>>, ComposedDecodable1<Box<T>, T> {
+class _BoxCodable<T> with SuperDecodable<Box<T>> implements Codable<Box<T>>, ComposedDecodable1<Box<T>> {
   const _BoxCodable([Codable<T>? codable])
       : encodable = codable,
         decodable = codable;

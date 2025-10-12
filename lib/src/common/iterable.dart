@@ -57,7 +57,7 @@ extension AsIterableEncodable<T extends SelfEncodable> on Iterable<T> {
 /// A [Codable] that can encode and decode a list of [E].
 ///
 /// Prefer using [AsListCodable.list] instead of the constructor.
-class ListCodable<E> with _ListDecodable<E> implements Codable<List<E>>, ComposedDecodable1<List<E>, E> {
+class ListCodable<E> with _ListDecodable<E> implements Codable<List<E>>, ComposedDecodable1<List<E>> {
   const ListCodable(this.codable);
 
   @override
@@ -77,7 +77,7 @@ class ListCodable<E> with _ListDecodable<E> implements Codable<List<E>>, Compose
 /// A [Decodable] implementation that can decode a list of [E].
 ///
 /// Prefer using [AsListDecodable.list] instead of the constructor.
-class ListDecodable<E> with _ListDecodable<E> implements ComposedDecodable1<List<E>, E> {
+class ListDecodable<E> with _ListDecodable<E> implements ComposedDecodable1<List<E>> {
   const ListDecodable(this.codable);
 
   @override
@@ -98,7 +98,7 @@ class ListEncodable<E> implements Encodable<List<E>> {
   }
 }
 
-mixin _ListDecodable<E> implements ComposedDecodable1<List<E>, E>, LazyDecodable<List<E>> {
+mixin _ListDecodable<E> implements ComposedDecodable1<List<E>>, LazyDecodable<List<E>> {
   Decodable<E> get codable;
 
   @override
@@ -131,7 +131,7 @@ mixin _ListDecodable<E> implements ComposedDecodable1<List<E>, E>, LazyDecodable
 /// A [Codable] that can encode and decode a set of [E].
 ///
 /// Prefer using [AsSetCodable.set] instead of the constructor.
-class SetCodable<E> with _SetDecodable<E> implements Codable<Set<E>>, ComposedDecodable1<Set<E>, E> {
+class SetCodable<E> with _SetDecodable<E> implements Codable<Set<E>>, ComposedDecodable1<Set<E>> {
   const SetCodable(this.codable);
 
   @override
@@ -151,7 +151,7 @@ class SetCodable<E> with _SetDecodable<E> implements Codable<Set<E>>, ComposedDe
 /// A [Decodable] implementation that can decode a set of [E].
 ///
 /// Prefer using [AsSetDecodable.set] instead of the constructor.
-class SetDecodable<E> with _SetDecodable<E> implements ComposedDecodable1<Set<E>, E> {
+class SetDecodable<E> with _SetDecodable<E> implements ComposedDecodable1<Set<E>> {
   const SetDecodable(this.codable);
 
   @override
@@ -172,7 +172,7 @@ class SetEncodable<E> implements Encodable<Set<E>> {
   }
 }
 
-mixin _SetDecodable<E> implements ComposedDecodable1<Set<E>, E> {
+mixin _SetDecodable<E> implements ComposedDecodable1<Set<E>> {
   Decodable<E> get codable;
 
   @override

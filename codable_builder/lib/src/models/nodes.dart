@@ -11,6 +11,7 @@ class CodableClassNode {
     this.constructorName,
     this.typeParameters = const [],
     required this.fields,
+    this.subclasses = const [],
   });
 
   factory CodableClassNode.fromElement(ClassElement2 e) => e.toNode();
@@ -22,6 +23,8 @@ class CodableClassNode {
   final String? constructorName;
   final List<CodableTypeParameter> typeParameters;
   final List<CodableFieldNode> fields;
+
+  final List<CodableSubclassNode> subclasses;
 }
 
 class CodableFieldNode {
@@ -48,8 +51,37 @@ class CodableTypeParameter {
 
   final String name;
   final CodableType? bound;
+}
 
-  String get declaration => bound != null ? '$name extends ${bound!.reference}' : name;
+class CodableSubclassNode {
+  CodableSubclassNode({
+    required this.name,
+    required this.url,
+    this.chainable = false,
+    this.typeParameterMapping = const [],
+  });
+
+  final String name;
+  final String url;
+  final bool chainable;
+  final List<CodableTypeParameterMapping> typeParameterMapping;
+}
+
+class CodableTypeParameterMapping {
+  CodableTypeParameterMapping({
+    required this.name,
+    this.bound,
+    this.derivedIndex = -1,
+    this.compoundIndex = -1,
+  });
+
+  final String name;
+  final CodableType? bound;
+
+  // What index of the superclass type param this maps to, or -1 if none.
+  final int derivedIndex;
+  // What index of the compound type params this maps to, or -1 if none.
+  final int compoundIndex;
 }
 
 class CodableEnumNode {

@@ -123,7 +123,7 @@ class HigherOrderBox<T, B extends Box<T>> extends MetaBox<T, B> {
 // Codable implementations
 // =======================
 
-class BoxCodable<T> with SuperDecodable<Box<T>> implements Codable<Box<T>>, ComposedDecodable1<Box<T>, T> {
+class BoxCodable<T> with SuperDecodable<Box<T>> implements Codable<Box<T>>, ComposedDecodable1<Box<T>> {
   const BoxCodable([Codable<T>? codableT])
       : encodable = codableT,
         decodable = codableT;

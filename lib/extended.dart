@@ -1,3 +1,6 @@
+/// Extended functionality for Codables, including generics, inheritance, async support, chunked decodeing and hooks.
+library;
+
 export 'src/extended/compat.dart';
 export 'src/extended/generics.dart';
 export 'src/extended/custom.dart';

@@ -7,8 +7,9 @@ part 'class_builder_mixin.dart';
 part 'enum_builder_mixin.dart';
 part 'encode_mixin.dart';
 part 'decode_mixin.dart';
+part 'polymorphic_mixin.dart';
 
-class CodableBuilderImpl with ClassBuilderMixin, EnumBuilderMixin, EncodeMixin, DecodeMixin implements CodableBuilder {
+class CodableBuilderImpl with ClassBuilderMixin, EnumBuilderMixin, EncodeMixin, DecodeMixin, PolymorphicMixin implements CodableBuilder {
   const CodableBuilderImpl();
 
   @override
@@ -53,7 +54,10 @@ class CodableBuilderImpl with ClassBuilderMixin, EnumBuilderMixin, EncodeMixin, 
             });
           });
         }));
-        b.body = Code('return ${node.name}Codable(${node.typeParameters.map((t) => 'codable${t.name}').join(', ')});');
+        b.body = Block((b) {
+          b.statements.add(
+              Code('return ${node.name}Codable(${node.typeParameters.map((t) => 'codable${t.name}').join(', ')});'));
+        });
       });
     }
   }
@@ -79,7 +83,6 @@ class CodableBuilderImpl with ClassBuilderMixin, EnumBuilderMixin, EncodeMixin, 
         b.returns = TypeReference((b) {
           b.symbol = 'SelfEncodable';
           b.url = codableCoreUrl;
-          
         });
         b.name = 'use';
         b.optionalParameters.addAll(node.typeParameters.map((t) {
@@ -93,7 +96,8 @@ class CodableBuilderImpl with ClassBuilderMixin, EnumBuilderMixin, EncodeMixin, 
             });
           });
         }));
-        b.body = Code('return SelfEncodable.fromHandler((e) => encode(e, ${node.typeParameters.map((t) => 'encodable${t.name}').join(', ')}));');
+        b.body = Code(
+            'return SelfEncodable.fromHandler((e) => encode(e, ${node.typeParameters.map((t) => 'encodable${t.name}').join(', ')}));');
       }));
     });
   }

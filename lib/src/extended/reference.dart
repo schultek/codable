@@ -182,7 +182,7 @@ class _LateReference<T> implements Reference<T> {
   }
 }
 
-final class ReferenceDecodable<T> implements ComposedDecodable1<Reference<T>, T> {
+final class ReferenceDecodable<T> implements ComposedDecodable1<Reference<T>> {
   ReferenceDecodable._({this.using});
 
   final Decodable<T>? using;
